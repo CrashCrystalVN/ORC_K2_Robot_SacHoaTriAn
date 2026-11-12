@@ -36,16 +36,20 @@ def build_vfs_image(vfs_base_path, firmware_dir, output_vfs_path):
     fs.context.buffer = buf
     fs.mount()
 
-    files_to_update = ['config.py', 'maze_strategy.py', 'main.py']
+    # Tự động nạp toàn bộ các file mã nguồn .py trong thư mục Firmware
+    py_files = [f for f in os.listdir(firmware_dir) if f.endswith('.py')]
+    priority_order = ['config.py', 'mecanum_kinematics.py', 'gamepad.py', 'drivebase.py', 'maze_strategy.py', 'main.py']
+    files_to_update = [f for f in priority_order if f in py_files] + [f for f in sorted(py_files) if f not in priority_order]
+
     for fname in files_to_update:
         src_path = os.path.join(firmware_dir, fname)
         if not os.path.exists(src_path):
-            raise FileNotFoundError(f"Khong tim thay file: {src_path}")
+            continue
         with open(src_path, 'rb') as src:
             data = src.read()
         with fs.open(fname, 'wb') as dst:
             dst.write(data)
-        print(f"    + Da cap nhat: {fname} ({len(data)} bytes)")
+        print(f"    + Đã cập nhật vào VFS: {fname:<25s} ({len(data):6d} bytes)")
 
     fs.unmount()
     with open(output_vfs_path, 'wb') as f:
@@ -57,7 +61,7 @@ def flash_to_board(port, vfs_image_path):
     cmd = [
         sys.executable, "-m", "esptool",
         "--port", port,
-        "--baud", "921600",
+        "--no-stub",
         "write-flash", "0x200000", vfs_image_path
     ]
     res = subprocess.run(cmd, capture_output=True, text=True)
@@ -84,7 +88,13 @@ if __name__ == "__main__":
         
     vfs_out = os.path.join(base_dir, "vfs_ready_to_flash.bin")
     
-    port = find_esp32_port()
+    port = None
+    for arg in sys.argv[1:]:
+        if arg.upper().startswith("COM"):
+            port = arg.upper()
+            break
+    if not port:
+        port = find_esp32_port()
     print(f"=== TIEN TRINH NAP CODE CHO ORC K2 (PORT: {port}) ===")
     
     build_vfs_image(vfs_base, firmware_dir, vfs_out)

@@ -156,10 +156,10 @@ def get_a1_project_settings():
 # Define the unique DFM V4.0 meshes (ALL pre-oriented flat at Z=0.0, ZERO support needed!)
 MESH_DEFS = {
     "chassis": {
-        "stl": "01_Monocoque_Chassis_GA25_Mecanum.stl",
+        "stl": "01_Chassis_Base_200x200.stl",
         "rot_y_90": False,
         "support": "0",
-        "infill": "25%",
+        "infill": "20%",
         "walls": "3",
     },
     "tower_left": {
@@ -191,10 +191,10 @@ MESH_DEFS = {
         "walls": "3",
     },
     "k2_adapter_plate": {
-        "stl": "01D_K2_Hub_Adapter_Plate.stl",
+        "stl": "01D_K2_Hub_Adapter_Plate_V11_Hardened.stl",
         "rot_y_90": False,
         "support": "0",
-        "infill": "30%",
+        "infill": "25%",
         "walls": "4",
     },
     "k2_base_frame": {
@@ -216,6 +216,13 @@ MESH_DEFS = {
         "rot_y_90": False,
         "support": "0",
         "infill": "30%",
+        "walls": "4",
+    },
+    "k2_snap_clip": {
+        "stl": "01D_Snap_Clip_K2_Hub.stl",
+        "rot_y_90": False,
+        "support": "0",
+        "infill": "50%",
         "walls": "4",
     },
     "clamp_rear_left": {
@@ -275,25 +282,25 @@ MESH_DEFS = {
         "walls": "4",
     },
     "gripper_head": {
-        "stl": "04_Gripper_Base_Head.stl",
+        "stl": "04_Gripper_Base_Head_V2.stl",
         "rot_y_90": False,
         "support": "0",
-        "infill": "30%",
-        "walls": "3",
+        "infill": "40%",
+        "walls": "5",
     },
     "jaw_left": {
-        "stl": "05_Gripper_Jaw_Left_VGuide_Flower32.stl",
+        "stl": "05_Gripper_Jaw_Left_Universal_V2.stl",
         "rot_y_90": False,
         "support": "0",
-        "infill": "35%",
-        "walls": "4",
+        "infill": "40%",
+        "walls": "5",
     },
     "jaw_right": {
-        "stl": "06_Gripper_Jaw_Right_VGuide_Flower32.stl",
+        "stl": "06_Gripper_Jaw_Right_Universal_V2.stl",
         "rot_y_90": False,
         "support": "0",
-        "infill": "35%",
-        "walls": "4",
+        "infill": "40%",
+        "walls": "5",
     },
     "horn": {
         "stl": "08_MG996R_Servo_Lever_Horn.stl",
@@ -341,16 +348,16 @@ PLATES = [
     },
     {
         "index": 2,
-        "name": "Plate 2 - 2x Thap Nang Phang + 2x Tay Nang H-Frame + Cum Tay Kep 3 Hoa V7.0 (0% Support)",
+        "name": "Plate 2 - 2x Thap Nang Phang + 2x Tay Nang H-Frame + Cum Tay Kep V2.0 (0% Support)",
         "file_slug": "Plate_2_Tay_Nang_HFrame_Va_4x_Nap_Kep_Motor",
         "items": [
             {"mesh": "tower_left", "name": "01B_Lift_Tower_Left_FlatPrint", "local_x": 65.0, "local_y": 50.0},
             {"mesh": "tower_right", "name": "01C_Lift_Tower_Right_MG996R_FlatPrint", "local_x": 180.0, "local_y": 50.0},
             {"mesh": "arm_lower", "name": "03_Lower_H_Frame_Drive_Arm", "local_x": 36.0, "local_y": 160.0},
             {"mesh": "arm_upper", "name": "03B_Upper_H_Frame_Follower_Arm", "local_x": 84.0, "local_y": 160.0},
-            {"mesh": "jaw_left", "name": "05_Gripper_Jaw_Left_3Flower_V7.1", "local_x": 130.0, "local_y": 162.0},
-            {"mesh": "jaw_right", "name": "06_Gripper_Jaw_Right_3Flower_V7.1", "local_x": 168.0, "local_y": 162.0},
-            {"mesh": "gripper_head", "name": "04_Gripper_Base_Head_Pitch_V7.1", "local_x": 218.0, "local_y": 116.0},
+            {"mesh": "jaw_left", "name": "05_Gripper_Jaw_Left_Universal_V2", "local_x": 130.0, "local_y": 162.0},
+            {"mesh": "jaw_right", "name": "06_Gripper_Jaw_Right_Universal_V2", "local_x": 168.0, "local_y": 162.0},
+            {"mesh": "gripper_head", "name": "04_Gripper_Base_Head_V2", "local_x": 218.0, "local_y": 116.0},
             {"mesh": "wrist_s3", "name": "04A_Wrist_Clevis_Pitch_Bracket_S3_V7.1", "local_x": 218.0, "local_y": 182.0},
             {"mesh": "horn", "name": "08_MG996R_Servo_Lever_Horn_S1", "local_x": 200.0, "local_y": 230.0},
             {"mesh": "horn", "name": "08_MG996R_Servo_Lever_Horn_S2", "local_x": 232.0, "local_y": 230.0},
@@ -358,13 +365,13 @@ PLATES = [
     },
     {
         "index": 3,
-        "name": "Plate 3 - Cum Tay Kep 3 Tru Hoa Gap Doc 90° V7.1 Rieng (Co Tay 04A + Be 04 + 2 Ham 05, 06)",
+        "name": "Plate 3 - Cum Tay Kep V2.0 Involute Gap Doc 90° Rieng (Co Tay 04A + Be 04 + 2 Ham 05, 06)",
         "file_slug": "Plate_3_Cum_Tay_Kep_Hoa_Va_Tay_Gat_MG996R",
         "items": [
-            {"mesh": "gripper_head", "name": "04_Gripper_Base_Head_Pitch_V7.1", "local_x": 92.0, "local_y": 55.0},
+            {"mesh": "gripper_head", "name": "04_Gripper_Base_Head_V2", "local_x": 92.0, "local_y": 55.0},
             {"mesh": "wrist_s3", "name": "04A_Wrist_Clevis_Pitch_Bracket_S3_V7.1", "local_x": 172.0, "local_y": 55.0},
-            {"mesh": "jaw_left", "name": "05_Gripper_Jaw_Left_3Flower_V7.1", "local_x": 75.0, "local_y": 162.0},
-            {"mesh": "jaw_right", "name": "06_Gripper_Jaw_Right_3Flower_V7.1", "local_x": 181.0, "local_y": 162.0},
+            {"mesh": "jaw_left", "name": "05_Gripper_Jaw_Left_Universal_V2", "local_x": 75.0, "local_y": 162.0},
+            {"mesh": "jaw_right", "name": "06_Gripper_Jaw_Right_Universal_V2", "local_x": 181.0, "local_y": 162.0},
             {"mesh": "coupler_s1", "name": "08_S1_MG996R_Round_Horn_Drive_Coupler", "local_x": 128.0, "local_y": 135.0},
             {"mesh": "horn", "name": "08_MG996R_Servo_Lever_Horn_S1", "local_x": 128.0, "local_y": 182.0},
             {"mesh": "horn", "name": "08_MG996R_Servo_Lever_Horn_S2", "local_x": 128.0, "local_y": 218.0},
@@ -391,31 +398,35 @@ PLATES = [
     },
     {
         "index": 6,
-        "name": "Plate 6 - Bo K2 Hub 2 Tang V9.0 Cantilever (Ne Thap Nang 23mm + Ranh Day Kin Khoa Tan M3 + 2x Nep Motor Sau)",
+        "name": "Plate 6 - Bo K2 Hub V10.0 Quick-Snap & 2x Laser VL53L0X Giai Me Cung (Tam Plate + Khung Chan Don + 2x Nep Motor)",
         "file_slug": "Plate_6_K2_Control_Hub_Riser_Adapter_Patch",
         "items": [
-            {"mesh": "k2_adapter_plate", "name": "01D_K2_Hub_Adapter_Plate_V9.0", "local_x": 74.0, "local_y": 115.0},
-            {"mesh": "k2_base_frame", "name": "01D_Base_Riser_Frame_V9.0", "local_x": 196.0, "local_y": 115.0},
-            {"mesh": "clamp_rear_left", "name": "02B_GA25_Rear_Motor_Clamp_Left", "local_x": 95.0, "local_y": 212.0},
-            {"mesh": "clamp_rear_right", "name": "02C_GA25_Rear_Motor_Clamp_Right", "local_x": 160.0, "local_y": 212.0},
+            {"mesh": "k2_adapter_plate", "name": "01D_K2_Hub_Adapter_Plate_V10.0", "local_x": 78.0, "local_y": 115.0},
+            {"mesh": "k2_base_frame", "name": "01D_Base_Riser_Frame_V10.0", "local_x": 196.0, "local_y": 115.0},
+            {"mesh": "clamp_rear_left", "name": "02B_GA25_Rear_Motor_Clamp_Left", "local_x": 80.0, "local_y": 215.0},
+            {"mesh": "clamp_rear_right", "name": "02C_GA25_Rear_Motor_Clamp_Right", "local_x": 130.0, "local_y": 215.0},
+            {"mesh": "k2_snap_clip", "name": "01D_Snap_Clip_K2_Hub_A", "local_x": 180.0, "local_y": 215.0},
+            {"mesh": "k2_snap_clip", "name": "01D_Snap_Clip_K2_Hub_B", "local_x": 215.0, "local_y": 215.0},
         ],
     },
     {
         "index": 7,
-        "name": "Plate 7 - K2 Riser Monolithic V9.0 Cantilever (Ne Cum Gap Tru 23mm + Ranh Day Kin Giữ Tan M3 + Ha Thang Dung)",
+        "name": "Plate 7 - K2 Riser Monolithic V10.0 (2x Laser VL53L0X Giai Me Cung + 2x Ngam Snap-Clip + 2x Nep Motor)",
         "file_slug": "Plate_7_K2_Monolithic_Riser_Va_Nep_Motor_Sau",
         "items": [
-            {"mesh": "k2_adapter_monolithic", "name": "01D_K2_Control_Hub_Riser_Monolithic_V9.0", "local_x": 128.0, "local_y": 100.0},
-            {"mesh": "clamp_rear_left", "name": "02B_GA25_Rear_Motor_Clamp_Left", "local_x": 95.0, "local_y": 205.0},
-            {"mesh": "clamp_rear_right", "name": "02C_GA25_Rear_Motor_Clamp_Right", "local_x": 160.0, "local_y": 205.0},
+            {"mesh": "k2_adapter_monolithic", "name": "01D_K2_Control_Hub_Riser_Monolithic_V10.0", "local_x": 128.0, "local_y": 105.0},
+            {"mesh": "clamp_rear_left", "name": "02B_GA25_Rear_Motor_Clamp_Left", "local_x": 70.0, "local_y": 215.0},
+            {"mesh": "clamp_rear_right", "name": "02C_GA25_Rear_Motor_Clamp_Right", "local_x": 115.0, "local_y": 215.0},
+            {"mesh": "k2_snap_clip", "name": "01D_Snap_Clip_K2_Hub_A", "local_x": 160.0, "local_y": 215.0},
+            {"mesh": "k2_snap_clip", "name": "01D_Snap_Clip_K2_Hub_B", "local_x": 195.0, "local_y": 215.0},
         ],
     },
     {
         "index": 8,
-        "name": "Plate 8 - Cum Servo S1 Nang Ha V5.0 (Tay Nang Duoi + Thap Phai + Khop Khoa Dia Tron S1)",
+        "name": "Plate 8 - Cum Servo S1 Nang Ha V13.0 (Tay Nang Duoi Thanh Manh Sieu Ben + Thap Phai + Khop Khoa Dia Tron S1)",
         "file_slug": "Plate_8_Cum_Servo_S1_Nang_Ha_Va_Tay_Nang",
         "items": [
-            {"mesh": "arm_lower", "name": "03_Parallel_Arm_Truss_IBeam_V5.0", "local_x": 75.0, "local_y": 128.0},
+            {"mesh": "arm_lower", "name": "03_Parallel_Arm_Truss_IBeam_V13.0", "local_x": 75.0, "local_y": 128.0},
             {"mesh": "tower_right", "name": "01C_Lift_Tower_Right_MG996R_V5.0", "local_x": 165.0, "local_y": 128.0},
             {"mesh": "coupler_s1", "name": "08_S1_MG996R_Round_Horn_Drive_Coupler", "local_x": 165.0, "local_y": 200.0},
         ],
@@ -649,6 +660,13 @@ def main():
         single_plate_path = os.path.join(OUT_3MF_DIR, f"{pl['file_slug']}.3mf")
         create_bambu_3mf([pl], single_plate_path, project_settings_str, loaded_meshes)
         print(f"Updated Single Plate 3MF:       {single_plate_path}")
+
+    # 4. Generate user-requested direct production 3MF packages
+    try:
+        import export_bambu_3mf_packages
+        export_bambu_3mf_packages.main()
+    except Exception as e:
+        print(f"Note on production 3MF export: {e}")
 
     print("All DFM V4.0 3MF files generated successfully!")
 

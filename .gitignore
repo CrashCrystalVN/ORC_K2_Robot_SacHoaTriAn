@@ -8,3 +8,7 @@ __pycache__/
 *.log
 .DS_Store
 Thumbs.db
+*.csg
+*.echo
+.agent/
+temp_compare_meshes/

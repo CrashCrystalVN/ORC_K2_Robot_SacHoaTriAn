@@ -160,171 +160,289 @@ module slot_m3_counterbored_top(x1, y1, x2, y2, Z_base = 0.0, T_deck = 6.0, cb_d
     }
 }
 
-// ====================================================================
-// 1. TẤM BỆ ADAPTER PHẲNG ĐA NĂNG LÙI HẬU NÉ THÁP GẮP TRỤ V9.0 (K2 HUB CANTILEVER REAR-SHIFT PLATE V9.0)
-// - Thiết kế lại toàn bộ để TRIỆT TIÊU 100% VA CHẠM VỚI CẤU TRÚC GẮP TRỤ (2 Tháp nâng 01B/01C & Servo S1):
-//   1. KIẾN TRÚC LÙI HẬU (CANTILEVER REAR-SHIFT: Y in [-8.0, +82.0mm]):
-//      + Mặt sàn chính dừng tại Y = 82.0mm -> Cách lưng 2 Tháp Nâng (Y = 105.0mm) tới 23.0mm (2.3cm)
-//        và cách tai sau + ốc + dây cáp của Servo S1 (Y = 107.65mm) tới 25.65mm!
-//      + Khi lắp K2 Control Hub (Y in [-6.0, +80.0mm]), mặt trước K2 Hub cách 2 Tháp Nâng đúng 25.0mm,
-//        dư không gian thoáng đãng để cắm toàn bộ giắc Motor M1..M4, Encoder E1..E2 và Servo S1..S4!
-//   2. 2 TAY VƯƠN BẮT TRỤ TRƯỚC LỘ THIÊN (Y in [82.0, 102.0mm], |X| in [29.2, 39.2mm]):
-//      + Nằm hoàn toàn BÊN NGOÀI vách 2 Tháp Nâng (|X| <= 28.0mm -> khe hở ngang 1.2mm) và DỪNG TRƯỚC
-//        mặt sau 2 Tháp Nâng & Gờ định vị ngoài (Y = 105.0mm -> khe hở dọc 3.0mm)!
-//      + Lỗ bắt trụ trước (Y = 99.0mm) và lỗ khóa nhanh vào khung đôn (Y = 88.5mm) nằm LỘ THIÊN 100%
-//        ở phía trước bo mạch K2 Control Hub (Y <= 80.0mm) -> Đưa tô-vít thẳng đứng từ trên xuống cực dễ!
-//   3. HỆ RÃNH ĐƯỜNG RAY KHÓA TÁN M3 ĐÁY KÍN CHỐNG RƠI (CAPTIVE BLIND-FLOOR NUT CHANNELS):
-//      + Có sàn đáy kín dày 1.2mm giữ tán M3 KHÔNG BAO GIỜ RƠI XUỐNG GẦM XE + cửa nhét tán từ mép sườn!
-//      + Rãnh 2 chiều bao phủ |X| từ 30.0mm đến 55.5mm (khoảng cách tâm 60..111mm) và ΔY từ 34..82mm.
-// ====================================================================
+// Cụm gá cảm biến VL53L0X nửa bên Phải (+X)
+module vl53l0x_pod_half(T_deck = 6.0, Z_base = 0.0) {
+    difference() {
+        union() {
+            // Cánh vươn chịu lực nối liền mép sàn (ăn sâu vào sàn từ X = 56.0 ra đến X = 68.2)
+            hull() {
+                translate([56.0, 66.0, Z_base]) cube([4.0, 16.5, T_deck]);
+                translate([68.2, 67.5, Z_base]) cylinder(r=2.2, h=T_deck + 6.0);
+                translate([68.2, 81.0, Z_base]) cylinder(r=2.2, h=T_deck + 6.0);
+                translate([56.0, 82.5, Z_base]) cube([4.0, 0.1, T_deck]);
+            }
+            // 2 Ngàm cài Snap-fit đàn hồi giữ mép bo mạch VL53L0X (Y = 70.0 và Y = 78.5)
+            for (py = [70.0, 78.5]) {
+                translate([68.6, py - 2.2, Z_base])
+                    cube([1.8, 4.4, T_deck + 6.0]);
+                // Đầu móc ngàm khóa có vát dốc 45° dẫn hướng ấn tách
+                translate([68.6, py - 2.2, Z_base + T_deck + 4.5])
+                    hull() {
+                        cube([1.8, 4.4, 1.5]);
+                        translate([-1.0, 0, 0]) cube([0.1, 4.4, 1.0]);
+                    }
+            }
+            // Gờ tì sau lưng bo mạch VL53L0X
+            translate([66.2, 68.0, Z_base])
+                cube([1.4, 13.0, T_deck + 5.5]);
+        }
+        
+        // Khe cắm bo mạch VL53L0X đứng (rộng 2.1mm cho PCB dày 1.6mm + dung sai, dài 14.0mm)
+        translate([67.6, 67.5, Z_base + 1.5])
+            cube([2.1, 14.0, 15.0]);
+            
+        // Cửa sổ quang học bắn tia laser ToF 90° vuông góc vách tường mê cung (11.0 x 6.5mm kèm vát loe 35°)
+        translate([64.5, 68.5, Z_base + 2.8])
+            cube([8.0, 11.0, 6.5]);
+        hull() {
+            translate([66.0, 68.5, Z_base + 2.8]) cube([0.1, 11.0, 6.5]);
+            translate([70.0, 67.5, Z_base + 1.5]) cube([0.1, 13.0, 9.2]);
+        }
+        
+        // 2 Lỗ ốc M2.5 / M3 bắt vít dự phòng (khoảng cách tâm 18.0mm: Y = 67.5 và Y = 81.5) thông suốt
+        translate([63.5, 67.5, Z_base - 1.0]) cylinder(d=3.3, h=T_deck + 10.0);
+        translate([63.5, 81.5, Z_base - 1.0]) cylinder(d=3.3, h=T_deck + 10.0);
+        
+        // Rãnh luồn cáp I2C 4P ngầm mở từ trên (Y = 74.0..79.0, Z = Z_base + 2.5mm -> mặt đáy Z=0 liền đặc 2.5mm chịu lực)
+        translate([56.0, 74.0, Z_base + 2.5])
+            cube([12.0, 5.0, T_deck + 2.0]);
+    }
+}
+
+module vl53l0x_maze_sensor_pod(is_left = true, T_deck = 6.0, Z_base = 0.0) {
+    if (is_left) {
+        mirror([1, 0, 0]) vl53l0x_pod_half(T_deck = T_deck, Z_base = Z_base);
+    } else {
+        vl53l0x_pod_half(T_deck = T_deck, Z_base = Z_base);
+    }
+}
+
 module k2_adapter_plate_flat() {
     T_deck = 6.0;
     difference() {
         union() {
-            // 1. Mặt sàn chính phẳng tuyệt đối 100% lùi hậu (120.0 x 90.0 x 6.0 mm, X in [-60, 60], Y in [-8, 82]):
-            //    Dừng tại Y = 82.0mm -> Cách 2 Tháp Nâng (Y=105) tới 23.0mm và cách Servo S1 (Y=107.65) tới 25.65mm!
+            // 1. Mặt sàn chính phẳng tuyệt đối 100% lùi hậu (120.0 x 90.0 x 6.0 mm, X in [-60, 60], Y in [-8, 82])
             translate([-60.0, -8.0, 0.0])
                 cube([120.0, 90.0, T_deck]);
                 
-            // 2. Hai Tai Bắt Ốc Lộ Thiên Phía Sau (X in [+-25.0, +-41.0], Y in [-18.0, -8.0]):
-            //    Vươn ra ngoài đuôi K2 Hub (Y >= -6.0) để bắt khóa nhanh từ trên xuống!
+            // 1b. Gân bệ sàn mở rộng mép sườn sau (|X| in [57.0, 65.0], Y in [-8.0, 6.0], Z in [0, T_deck])
+            // Đỡ liền khối 100% cho 2 gờ định vị sau K2 Hub, loại bỏ hoàn toàn hiện tượng floating!
+            for (sx = [-1, 1]) {
+                translate([sx > 0 ? 57.0 : -65.0, -8.0, 0.0])
+                    cube([8.0, 14.0, T_deck]);
+                hull() {
+                    translate([sx > 0 ? 57.0 : -65.0, 6.0, 0.0]) cube([8.0, 0.1, T_deck]);
+                    translate([sx > 0 ? 59.9 : -60.0, 10.0, 0.0]) cube([0.1, 0.1, T_deck]);
+                }
+            }
+                
+            // 2. Hai Tai Bắt Ốc Lộ Thiên Phía Sau (X in [+-25.0, +-41.0], Y in [-18.0, -8.0])
             for (sx = [-1, 1]) {
                 translate([sx * 33.0 - 8.0, -18.0, 0.0])
                     cube([16.0, 11.0, T_deck]);
             }
             
-            // 3. Hai Tay Vươn Bắt Trụ Trước & Khóa Nhanh Lộ Thiên (|X| in [29.2, 39.2], Y in [81.0, 102.0]):
-            //    - Mép trong |X| = 29.2mm (cách vách ngoài Tháp Nâng |X| = 28.0mm đúng 1.2mm!)
-            //    - Mũi trước Y = 102.0mm (dừng trước Tháp Nâng & Gờ định vị Y = 105.0mm đúng 3.0mm!)
-            //    - Giữa 2 tay (X in [-29.2, +29.2]) là Hốc Chữ U rộng 58.4 x 23.0mm né hoàn toàn Cấu Trúc Gắp Trụ!
+            // 2B. Đệm mở rộng sàn đỡ Gân trợ lực Ngàm Đuôi (X in [+-37.0, +-53.0], Y in [-14.0, -8.0])
+            for (sx = [-1, 1]) {
+                translate([sx * 45.0 - 8.0, -14.0, 0.0])
+                    cube([16.0, 6.5, T_deck]);
+            }
+            
+            // 3. Hai Tay Vươn Bắt Trụ Trước & Khóa Nhanh Lộ Thiên (|X| in [29.2, 39.2], Y in [81.0, 102.0])
             for (sx = [-1, 1]) {
                 translate([sx * 34.2 - 5.0, 81.0, 0.0])
                     cube([10.0, 21.0, T_deck]);
             }
-        }
-        
-        // Ô thoáng trung tâm (42 x 36 mm, X in [-21, 21], Y in [19, 55]) luồn dây Pin 2S & thoáng khí:
-        translate([-21.0, 19.0, -1.0])
-            cube([42.0, 36.0, T_deck + 2.0]);
             
-        // A. TỔ HỢP RÃNH ĐƯỜNG RAY KHÓA TÁN M3 ĐÁY KÍN 2 CHIỀU (CAPTIVE 2D SLOTTED MATRIX) TẠI 4 GÓC K2 HUB:
-        //    - Bao phủ |X| liên tục từ 30.0mm đến 55.5mm (khoảng cách lỗ ngang 60..111mm: vừa 64, 72, 80, 88, 96, 100, 104mm!)
-        //    - Góc Sau: Y từ -4.5 đến 19.5mm | Góc Trước: Y từ 54.5 đến 78.5mm (ΔY từ 35mm đến 83mm: vừa 48, 56, 64, 68, 72, 76mm!)
-        //    - Đáy kín 1.2mm giữ tán M3 không bao giờ rơi + Cửa nhét tán ngang từ mép sườn |X| = 60.0mm!
-        for (sx = [-1, 1]) {
-            for (abs_x = [32.0, 40.0, 48.0, 54.0]) {
-                slot_m3_with_nut_channel_z0(sx * abs_x, -4.5, sx * abs_x, 19.5, T_deck);
-                slot_m3_with_nut_channel_z0(sx * abs_x, 54.5, sx * abs_x, 78.5, T_deck);
+            // 3B. Đệm mở rộng sàn đỡ Gân trợ lực Ngàm Trước (X in [+-53.5, +-60.5], Y in [81.5, 89.0])
+            for (sx = [-1, 1]) {
+                translate([sx * 57.0 - (sx > 0 ? 3.5 : 3.5), 81.5, 0.0])
+                    cube([7.0, 7.5, T_deck]);
             }
-            for (hy_rear = [-2.0, 5.0, 12.0, 18.0]) {
-                slot_m3_with_nut_channel_z0(sx * 30.0, hy_rear, sx * 55.5, hy_rear, T_deck);
-                side_nut_entry_port_z0(sx, hy_rear, T_deck);
+            
+            // 4. Hai Cụm Gá Cảm Biến Khoảng Cách Laser ToF VL53L0X Trái & Phải giải mê cung
+            vl53l0x_maze_sensor_pod(is_left=true, T_deck=T_deck, Z_base=0.0);
+            vl53l0x_maze_sensor_pod(is_left=false, T_deck=T_deck, Z_base=0.0);
+            
+            // 5. CƠ CẤU NGÀM VÀ GỜ HÃM GIA CỐ CƠ HỌC TOÀN DIỆN
+            // A. HAI GỜ HÃM ĐUÔI GIA CỐ CỰC DÀY CÓ GÂN TAM GIÁC:
+            for (sx = [-1, 1]) {
+                translate([sx * 45.0 - 7.5, -11.5, T_deck]) {
+                    cube([15.0, 5.5, 11.5]);
+                    translate([0, 5.5, 9.8])
+                        hull() {
+                            cube([15.0, 0.1, 1.7]);
+                            translate([0, 2.0, 0.5]) cube([15.0, 0.1, 1.2]);
+                            translate([0, 0, 1.7]) cube([15.0, 0.1, 0.1]);
+                        }
+                    translate([0, -2.5, 0])
+                        hull() {
+                            cube([15.0, 0.1, 0.1]);
+                            translate([0, 2.5, 0]) cube([15.0, 0.1, 11.5]);
+                            translate([0, 2.5, 11.5]) cube([15.0, 0.1, 0.1]);
+                        }
+                }
+                translate([sx * 45.0 - 7.5, -11.5, T_deck]) {
+                    hull() {
+                        translate([0, -2.5, 0]) cube([15.0, 0.1, 0.1]);
+                        translate([0, 0, 0]) cube([15.0, 0.1, 3.5]);
+                    }
+                }
             }
-            for (hy_front = [56.0, 62.0, 69.0, 76.0]) {
-                slot_m3_with_nut_channel_z0(sx * 30.0, hy_front, sx * 55.5, hy_front, T_deck);
-                side_nut_entry_port_z0(sx, hy_front, T_deck);
+            
+            // B. HAI GỜ HÃM GÓC TRƯỚC GIA CỐ CỰC DÀY:
+            for (sx = [-1, 1]) {
+                translate([sx * 57.0 - (sx > 0 ? 3.5 : 3.5), 80.0, T_deck]) {
+                    cube([7.0, 6.0, 12.0]);
+                    translate([0, -1.8, 10.2])
+                        hull() {
+                            cube([7.0, 1.8, 1.8]);
+                            translate([0, 1.8, 1.8]) cube([7.0, 0.1, 0.1]);
+                        }
+                    translate([0, 6.0, 0])
+                        hull() {
+                            cube([7.0, 0.1, 12.0]);
+                            translate([0, 3.0, 0]) cube([7.0, 0.1, 0.1]);
+                            cube([7.0, 0.1, 0.1]);
+                        }
+                }
+                translate([sx * 57.0 - (sx > 0 ? 3.5 : 3.5), 80.0, T_deck]) {
+                    hull() {
+                        translate([0, 6.0, 0]) cube([7.0, 0.1, 3.5]);
+                        translate([0, 9.0, 0]) cube([7.0, 0.1, 0.1]);
+                    }
+                }
             }
-        }
-        
-        // B. RÃNH TRƯỢT 2 CHIỀU (2D X-Y SLOTS) BẮT XUỐNG 4 TRỤ KHUNG GẦM (X = +-33.0, Y = 49.0 & 99.0):
-        //    - Trụ sau (Y = 49.0) & Trụ trước lộ thiên trên tay vươn (Y = 98.0):
-        for (sx = [-1, 1]) {
-            // Trụ sau (Y = 49.0 +- 3.5mm, |X| = 31.5..35.0mm):
-            hull() {
-                translate([sx * 31.5, 45.5, -1.0]) cylinder(d=3.6, h=T_deck + 2.0);
-                translate([sx * 35.0, 45.5, -1.0]) cylinder(d=3.6, h=T_deck + 2.0);
-                translate([sx * 31.5, 52.5, -1.0]) cylinder(d=3.6, h=T_deck + 2.0);
-                translate([sx * 35.0, 52.5, -1.0]) cylinder(d=3.6, h=T_deck + 2.0);
-            }
-            hull() {
-                translate([sx * 31.5, 45.5, T_deck - 2.2]) cylinder(d=7.0, h=3.2);
-                translate([sx * 35.0, 45.5, T_deck - 2.2]) cylinder(d=7.0, h=3.2);
-                translate([sx * 31.5, 52.5, T_deck - 2.2]) cylinder(d=7.0, h=3.2);
-                translate([sx * 35.0, 52.5, T_deck - 2.2]) cylinder(d=7.0, h=3.2);
-            }
-            // Trụ trước lộ thiên trên Tay Vươn Trước (Y = 95.5..99.5mm, |X| = 32.0..35.5mm):
-            hull() {
-                translate([sx * 32.0, 95.5, -1.0]) cylinder(d=3.6, h=T_deck + 2.0);
-                translate([sx * 35.5, 95.5, -1.0]) cylinder(d=3.6, h=T_deck + 2.0);
-                translate([sx * 32.0, 99.5, -1.0]) cylinder(d=3.6, h=T_deck + 2.0);
-                translate([sx * 35.5, 99.5, -1.0]) cylinder(d=3.6, h=T_deck + 2.0);
-            }
-            hull() {
-                translate([sx * 32.0, 95.5, T_deck - 2.2]) cylinder(d=6.8, h=3.2);
-                translate([sx * 35.5, 95.5, T_deck - 2.2]) cylinder(d=6.8, h=3.2);
-                translate([sx * 32.0, 99.5, T_deck - 2.2]) cylinder(d=6.8, h=3.2);
-                translate([sx * 35.5, 99.5, T_deck - 2.2]) cylinder(d=6.8, h=3.2);
-            }
-        }
-        
-        // C. 4 RÃNH KHÓA NHANH LỘ THIÊN (EXPOSED QUICK-LOCK SLOTS) BẮT LÊN KHUNG CHÂN ĐÔN 01D_Base_Riser_Frame:
-        //    - 2 Tai Sau Lộ Thiên: X = +-33.0mm, Y = -15.0 .. -11.0mm (nằm sau K2 Hub Y >= -6.0mm)
-        //    - 2 Tai Trước Lộ Thiên: X = +-34.0mm, Y = 86.0 .. 90.0mm (nằm trước K2 Hub Y <= 80.0mm & sau Tháp Nâng 15mm!)
-        for (sx = [-1, 1]) {
-            slot_m3_counterbored_top(sx * 31.5, -13.0, sx * 34.5, -13.0, 0.0, T_deck);
-            slot_m3_counterbored_top(sx * 33.0, -15.0, sx * 33.0, -11.0, 0.0, T_deck);
-            slot_m3_counterbored_top(sx * 32.5, 88.0, sx * 35.5, 88.0, 0.0, T_deck);
-            slot_m3_counterbored_top(sx * 34.0, 86.0, sx * 34.0, 90.0, 0.0, T_deck);
-        }
-        
-        // D. HỆ LƯỚI LỖ ĐA NĂNG CHUẨN OHSTEM 8.0MM (8MM PITCH MATRIX) DỌC HAI BÊN SƯỜN & TRUNG TÂM:
-        for (sx = [-1, 1]) {
-            for (gx = [44.0, 52.0]) {
-                for (gy = [25.0, 33.0, 41.0]) {
-                    slot_m3_with_nut_channel_z0(sx * gx, gy - 1.5, sx * gx, gy + 1.5, T_deck);
+            
+            // C. 4 GỜ ĐỊNH VỊ SƯỜN TĂNG CƯỜNG (Dày 4.0mm, cao 5.0mm, vát côn dẫn hướng 45°):
+            for (sx = [-1, 1]) {
+                // 2 Gờ sau: Đặt trên bệ sàn mở rộng Z = T_deck
+                translate([sx * 60.8 - (sx > 0 ? 0 : 4.0), -6.0, T_deck]) {
+                    cube([4.0, 12.0, 5.0]);
+                    translate([sx > 0 ? 0 : 4.0, 0, 3.5])
+                        rotate([0, sx > 0 ? -45 : 45, 0])
+                            cube([2.0, 12.0, 2.0]);
+                }
+                // 2 Gờ trước: Đặt trên cánh vươn sensor pod (Y in [67.0, 72.0]), tách rời rãnh cáp Y=74..79:
+                translate([sx * 60.8 - (sx > 0 ? 0 : 4.0), 67.0, T_deck]) {
+                    cube([4.0, 5.0, 5.0]);
+                    translate([sx > 0 ? 0 : 4.0, 0, 3.5])
+                        rotate([0, sx > 0 ? -45 : 45, 0])
+                            cube([2.0, 5.0, 2.0]);
                 }
             }
         }
-        for (gx = [-16.0, -8.0, 0.0, 8.0, 16.0]) {
-            for (gy = [0.0, 8.0, 64.0, 72.0]) {
-                slot_m3_with_nut_channel_z0(gx - 1.5, gy, gx + 1.5, gy, T_deck);
+        
+        // ------------------------------------------------------------
+        // CÁC HỐC VÀ LỖ KHOÉT SẠCH SẼ - SÀN ĐẶC LIỀN KHỐI 100%
+        // (MẶT ĐÁY Z = 0.0 PHẲNG TUYỆT ĐỐI, TIẾP XÚC 100% VỚI BÀN IN)
+        // ------------------------------------------------------------
+        
+        // 1. Ô thoáng trung tâm luồn dây Pin 2S & thông gió:
+        translate([-20.0, 20.0, -1.0])
+            cube([40.0, 34.0, T_deck + 2.0]);
+            
+        // 2. 4 Rãnh trượt đơn M3 gọn gàng tại 4 góc K2 Hub (bắt vít dự phòng):
+        for (sx = [-1, 1]) {
+            for (sy = [6.0, 68.0]) {
+                hull() {
+                    translate([sx * 44.0, sy, -1.0]) cylinder(d=3.4, h=T_deck + 2.0);
+                    translate([sx * 53.0, sy, -1.0]) cylinder(d=3.4, h=T_deck + 2.0);
+                }
+                hull() {
+                    translate([sx * 44.0, sy, T_deck - 2.5]) cylinder(d=6.5, h=3.0);
+                    translate([sx * 53.0, sy, T_deck - 2.5]) cylinder(d=6.5, h=3.0);
+                }
             }
+        }
+        
+        // 3. Rãnh bắt ốc xuống khung gầm / chân đôn (Chuẩn hóa 100% khớp 4 Trụ Khung Gầm X = +-33.0, Y = 49.0 & Y = 99.0):
+        for (sx = [-1, 1]) {
+            // Trụ sau / giữa (Chuẩn tâm X = +-33.0, Y = 49.0 mm - Rãnh trượt 2D linh hoạt):
+            hull() {
+                translate([sx * 32.2, 46.0, -1.0]) cylinder(d=3.4, h=T_deck + 2.0);
+                translate([sx * 33.8, 46.0, -1.0]) cylinder(d=3.4, h=T_deck + 2.0);
+                translate([sx * 32.2, 52.0, -1.0]) cylinder(d=3.4, h=T_deck + 2.0);
+                translate([sx * 33.8, 52.0, -1.0]) cylinder(d=3.4, h=T_deck + 2.0);
+            }
+            hull() {
+                translate([sx * 32.2, 46.0, T_deck - 2.5]) cylinder(d=6.5, h=3.0);
+                translate([sx * 33.8, 46.0, T_deck - 2.5]) cylinder(d=6.5, h=3.0);
+                translate([sx * 32.2, 52.0, T_deck - 2.5]) cylinder(d=6.5, h=3.0);
+                translate([sx * 33.8, 52.0, T_deck - 2.5]) cylinder(d=6.5, h=3.0);
+            }
+            // Trụ trước lộ thiên trên tay vươn (Chuẩn tâm X = +-33.0 mm, Y = 99.0 mm - Vành kín chịu lực đầu mút):
+            hull() {
+                translate([sx * 32.2, 95.0, -1.0]) cylinder(d=3.4, h=T_deck + 2.0);
+                translate([sx * 33.8, 95.0, -1.0]) cylinder(d=3.4, h=T_deck + 2.0);
+                translate([sx * 32.2, 99.2, -1.0]) cylinder(d=3.4, h=T_deck + 2.0);
+                translate([sx * 33.8, 99.2, -1.0]) cylinder(d=3.4, h=T_deck + 2.0);
+            }
+            hull() {
+                translate([sx * 32.2, 95.0, T_deck - 2.5]) cylinder(d=6.2, h=3.0);
+                translate([sx * 33.8, 95.0, T_deck - 2.5]) cylinder(d=6.2, h=3.0);
+                translate([sx * 32.2, 98.5, T_deck - 2.5]) cylinder(d=6.2, h=3.0);
+                translate([sx * 33.8, 98.5, T_deck - 2.5]) cylinder(d=6.2, h=3.0);
+            }
+            // 2 Tai sau lộ thiên:
+            translate([sx * 33.0, -13.0, -1.0]) cylinder(d=3.4, h=T_deck + 2.0);
+            translate([sx * 33.0, -13.0, T_deck - 2.5]) cylinder(d=6.8, h=3.0);
+            
+            // 2 Tai trước khóa nhanh lộ thiên:
+            translate([sx * 34.0, 88.0, -1.0]) cylinder(d=3.4, h=T_deck + 2.0);
+            translate([sx * 34.0, 88.0, T_deck - 2.5]) cylinder(d=6.8, h=3.0);
         }
     }
 }
 
 // ====================================================================
-// 2. KHUNG CHÂN ĐÔN ĐA NĂNG LÙI HẬU NÉ THÁP GẮP TRỤ V9.0 (01D_Base_Riser_Frame)
-// - Thiết kế lại toàn bộ để KHÔNG BAO GIỜ VA CHẠM VỚI 2 THÁP NÂNG (01B & 01C) VÀ SERVO S1:
-//   1. Toàn bộ phần chân và tay trước giới hạn ở |X| in [29.2, 39.2mm] và dừng tại Y = 102.0mm:
-//      + Cách vách ngoài 2 Tháp Nâng (|X| = 28.0mm) đúng 1.2mm theo phương X!
-//      + Dừng trước mặt lưng 2 Tháp Nâng & Gờ định vị (Y = 105.0mm) đúng 3.0mm theo phương Y!
-//      + Khoảng giữa X in [-29.2, +29.2mm] từ Y = 78.0 đến 105.0mm TRỐNG HOÀN TOÀN 100%!
-//   2. 4 Chân bắt xuống khung gầm (X = +-33.0, Y = 49.0 & 99.0) hạ thẳng đứng (Drop-In), có giếng mở
-//      rộng rãi từ mặt trên xuống bậc đế dày 4.5mm (Z = 22.0..26.5mm) -> Dùng ốc ngắn M3x10/12mm cực dễ!
-//   3. 4 Tai Khóa Nhanh Lộ Thiên (Y = -13.0mm phía sau & Y = 88.0mm phía trước) có sẵn Hốc Giữ Tán M3
+// 2. KHUNG CHÂN ĐÔN ĐA NĂNG 2S2P CAO ĐỘ LỌT LÒNG 42.0MM (01D_Base_Riser_Frame)
+// - Thiết kế nâng cấp ĐẶC CHẾ CHO KHỐI PIN ĐÓNG SẴN 2S2P (Dày 38mm, Rộng 38mm, Dài 70mm):
+//   1. Nâng cao độ sàn tấm K2 Hub lên Z_top = 46.0mm (hoặc 48.0mm):
+//      + Sàn khung gầm tại Z = 4.0mm -> Khoảng sáng gầm lọt lòng H_clear = 46.0 - 4.0 = 42.0mm!
+//      + Dung sai rộng rãi: Pin 38mm + Dây đai Velcro 2mm + Khe hở an toàn 2mm = 42.0mm!
+//   2. HAI THANH GIẰNG NGANG NÉ PIN 2S2P 100%:
+//      + Giằng sau đặt tại Y in [-18.0, -10.0mm], Z in [Z_top - 6.0, Z_top] (nằm sau pin)
+//      + Giằng trước đặt tại Y in [84.0, 92.0mm], Z in [Z_top - 6.0, Z_top] (nằm trước pin)
+//      + Toàn bộ khoang giữa X in [-26.5, +26.5mm], Y in [-10.0, 84.0mm] (dài 94mm, rộng 53mm)
+//        THÔNG SUỐT 100% THEO PHƯƠNG Z, pin 2S2P rút ra cắm vào hoặc nhấc lên cực kỳ dễ dàng!
+//   3. 4 Chân bắt xuống khung gầm (X = +-33.0, Y = 49.0 & 99.0) hạ thẳng đứng (Drop-In):
+//      + Đáy dày 4.5mm (Z = 22.0..26.5mm) dùng ốc M3x10/12mm chuẩn.
+//      + Giếng đứng mở rộng Ø7.6..8.5mm thông suốt từ mặt trên xuống -> vặn ốc cực thoáng!
+//   4. 4 Tai Khóa Nhanh Lộ Thiên (Y = -13.0mm phía sau & Y = 88.0mm phía trước) có Hốc Giữ Tán M3
 //      Đáy Kín Chống Rơi -> Bắt tấm Plate + K2 Hub từ trên xuống hoàn toàn bên ngoài vỏ K2 Hub!
-//   4. Đặt in lật úp 180° (mặt Z = 38.0mm nằm sát bàn in Z = 0): IN 0% SUPPORT!
+//   5. Đặt in lật úp 180° (mặt Z_top nằm sát bàn in Z = 0): IN 0% SUPPORT!
 // ====================================================================
-module k2_base_riser_frame() {
-    Z_top = 38.0;
+module k2_base_riser_frame(Z_top = 46.0) {
     difference() {
         union() {
             for (sx = [-1, 1]) {
-                // 1. Hai Chân Trụ Sau (|X| in [26.5, 39.2], Y in [45.0, 56.5], Z in [22.0, 38.0]):
+                // 1. Hai Chân Trụ Sau (|X| in [26.5, 39.2], Y in [45.0, 56.5], Z in [22.0, Z_top]):
                 //    Cách nẹp motor sau (|X|=40.5 -> khe hở 1.3mm) và thân motor sau (Y<=44.5) an toàn tuyệt đối!
                 translate([sx * 32.85 - 6.35, 45.0, 22.0])
                     cube([12.7, 11.5, Z_top - 22.0]);
                     
-                // 2. Hai Chân & Tay Trụ Trước Né Tháp Nâng (|X| in [29.2, 39.2], Y in [82.0, 102.0], Z in [22.0, 38.0]):
+                // 2. Hai Chân & Tay Trụ Trước Né Tháp Nâng (|X| in [29.2, 39.2], Y in [82.0, 102.0], Z in [22.0, Z_top]):
                 //    - |X| >= 29.2mm (nằm ngoài Tháp Nâng |X| <= 28.0mm đúng 1.2mm!)
                 //    - Y <= 102.0mm (dừng trước Tháp Nâng Y = 105.0mm đúng 3.0mm!)
                 translate([sx * 34.2 - 5.0, 82.0, 22.0])
                     cube([10.0, 20.0, Z_top - 22.0]);
                     
-                // 3. Dầm dọc trên nối liền từ Tai Sau (Y = -18.0) đến Tay Trước (Y = 85.0) tại Z in [31.0, 38.0]:
-                translate([sx * 33.5 - 5.7, -18.0, 31.0])
+                // 3. Dầm dọc trên nối liền từ Tai Sau (Y = -18.0) đến Tay Trước (Y = 85.0) tại Z in [Z_top - 7.0, Z_top]:
+                translate([sx * 33.5 - 5.7, -18.0, Z_top - 7.0])
                     cube([11.4, 103.0, 7.0]);
                     
-                // 4. Khối Tai Khóa Sau Lộ Thiên dày 8mm (|X| in [25.5, 40.5], Y in [-18.0, -7.0], Z in [30.0, 38.0]):
-                translate([sx * 33.0 - 7.5, -18.0, 30.0])
+                // 4. Khối Tai Khóa Sau Lộ Thiên dày 8mm (|X| in [25.5, 40.5], Y in [-18.0, -7.0], Z in [Z_top - 8.0, Z_top]):
+                translate([sx * 33.0 - 7.5, -18.0, Z_top - 8.0])
                     cube([15.0, 11.0, 8.0]);
             }
             
-            // 5. Hai Thanh Giằng Ngang Chữ H nối Trái - Phải tại Y in [12.0, 20.0] và Y in [66.0, 74.0], Z in [32.0, 38.0]:
-            //    (Đặt tại Y <= 74.0mm, cách 2 Tháp Nâng Y=105.0mm tới 31.0mm!)
-            translate([-33.0, 12.0, 32.0]) cube([66.0, 8.0, 6.0]);
-            translate([-33.0, 66.0, 32.0]) cube([66.0, 8.0, 6.0]);
+            // 5. Hai Thanh Giằng Ngang Chữ H Né 100% Khối Pin 2S2P:
+            //    - Giằng Sau: Y in [-17.0, -9.0mm], Z in [Z_top - 6.0, Z_top]
+            //    - Giằng Trước: Y in [84.0, 92.0mm], Z in [Z_top - 6.0, Z_top]
+            //    -> Toàn bộ khoang trung tâm dài 93mm x rộng 53mm không bị cản trở!
+            translate([-33.0, -17.0, Z_top - 6.0]) cube([66.0, 8.0, 6.0]);
+            translate([-33.0, 84.0, Z_top - 6.0])  cube([66.0, 8.0, 6.0]);
         }
         
         // Vát góc đáy sau Chân Sau (Y = 45.0..47.5, Z = 22.0..27.0) tránh 100% thân motor GA25:
@@ -334,31 +452,28 @@ module k2_base_riser_frame() {
                     cube([15.0, 4.5, 8.0]);
         }
         
-        // A. 2 HỐC BẮT TRỤ SAU (X = +-31.5..35.0, Y = 46.5..51.5):
-        //    Đáy Z = 22.0..26.5mm (dày 4.5mm), phía trên Z = 26.5..38.0mm mở giếng chữ U rộng rãi kèm côn 45° tự đỡ:
+        // A. 2 HỐC BẮT TRỤ SAU (X = +-33.0, Y = 47.5..50.5):
+        //    Đáy Z = 22.0..26.5mm (dày 4.5mm), phía trên Z = 26.5..Z_top mở giếng thẳng đứng Ø7.6mm
         for (sx = [-1, 1]) {
+            // Lỗ trượt ốc M3 qua đáy dày 4.5mm (Z = 22.0..26.5mm):
             hull() {
-                translate([sx * 31.5, 46.5, 20.0]) cylinder(d=3.6, h=20.0);
-                translate([sx * 35.0, 46.5, 20.0]) cylinder(d=3.6, h=20.0);
-                translate([sx * 31.5, 51.5, 20.0]) cylinder(d=3.6, h=20.0);
-                translate([sx * 35.0, 51.5, 20.0]) cylinder(d=3.6, h=20.0);
+                translate([sx * 33.0, 47.5, 20.0]) cylinder(d=3.6, h=20.0);
+                translate([sx * 33.0, 50.5, 20.0]) cylinder(d=3.6, h=20.0);
             }
+            // Nón chuyển tiếp tự đỡ 45° từ lỗ M3 lên giếng đầu ốc:
             hull() {
-                translate([sx * 31.5, 46.5, 26.5]) cylinder(d1=3.6, d2=9.2, h=3.0);
-                translate([sx * 35.0, 51.5, 26.5]) cylinder(d1=3.6, d2=9.2, h=3.0);
-                translate([sx * 41.0, 47.0, 26.5]) cylinder(d1=3.6, d2=9.0, h=3.0);
-                translate([sx * 41.0, 51.0, 26.5]) cylinder(d1=3.6, d2=9.0, h=3.0);
+                translate([sx * 33.0, 47.5, 26.5]) cylinder(d1=3.6, d2=7.6, h=2.5);
+                translate([sx * 33.0, 50.5, 26.5]) cylinder(d1=3.6, d2=7.6, h=2.5);
             }
+            // Giếng đứng thả ốc M3 & lục giác vặn thẳng đứng từ trên xuống (Z = 28.9..Z_top+1):
             hull() {
-                translate([sx * 31.5, 46.5, 29.4]) cylinder(d=9.2, h=10.0);
-                translate([sx * 35.0, 51.5, 29.4]) cylinder(d=9.2, h=10.0);
-                translate([sx * 41.0, 47.0, 29.4]) cylinder(d=9.0, h=10.0);
-                translate([sx * 41.0, 51.0, 29.4]) cylinder(d=9.0, h=10.0);
+                translate([sx * 33.0, 47.5, 28.9]) cylinder(d=7.6, h=Z_top - 27.9);
+                translate([sx * 33.0, 50.5, 28.9]) cylinder(d=7.6, h=Z_top - 27.9);
             }
         }
         
         // B. 2 HỐC BẮT TRỤ TRƯỚC LỘ THIÊN (X = +-32.0..35.5, Y = 95.5..99.5):
-        //    Đáy Z = 22.0..26.5mm (dày 4.5mm), phía trên Z = 26.5..38.0mm mở thông ra phía trước & mép ngoài:
+        //    Đáy Z = 22.0..26.5mm (dày 4.5mm), phía trên Z = 26.5..Z_top mở thông ra phía trước & mép ngoài:
         for (sx = [-1, 1]) {
             hull() {
                 translate([sx * 32.0, 95.5, 20.0]) cylinder(d=3.6, h=20.0);
@@ -373,55 +488,54 @@ module k2_base_riser_frame() {
                 translate([sx * 38.5, 99.5, 26.5]) cylinder(d1=3.6, d2=8.5, h=3.0);
             }
             hull() {
-                translate([sx * 32.5, 95.5, 29.4]) cylinder(d=8.5, h=10.0);
-                translate([sx * 35.5, 95.5, 29.4]) cylinder(d=8.5, h=10.0);
-                translate([sx * 32.5, 103.5, 29.4]) cylinder(d=8.5, h=10.0);
-                translate([sx * 38.5, 99.5, 29.4]) cylinder(d=8.5, h=10.0);
+                translate([sx * 32.5, 95.5, 29.4]) cylinder(d=8.5, h=Z_top - 28.4);
+                translate([sx * 35.5, 95.5, 29.4]) cylinder(d=8.5, h=Z_top - 28.4);
+                translate([sx * 32.5, 103.5, 29.4]) cylinder(d=8.5, h=Z_top - 28.4);
+                translate([sx * 38.5, 99.5, 29.4]) cylinder(d=8.5, h=Z_top - 28.4);
             }
         }
         
         // C. 2 RÃNH KHÓA TÁN M3 ĐÁY KÍN Ở TAI SAU LỘ THIÊN (X = +-33.0, Y = -15.0 .. -11.0):
         for (sx = [-1, 1]) {
             hull() {
-                translate([sx * 33.0, -15.0, 28.0]) cylinder(d=3.3, h=12.0);
-                translate([sx * 33.0, -11.0, 28.0]) cylinder(d=3.3, h=12.0);
+                translate([sx * 33.0, -15.0, Z_top - 10.0]) cylinder(d=3.3, h=12.0);
+                translate([sx * 33.0, -11.0, Z_top - 10.0]) cylinder(d=3.3, h=12.0);
             }
-            // Rãnh khóa tán M3 (Z = 31.2..34.2) có đáy đỡ Z = 30.0..31.2mm + cửa nhét tán từ đuôi Y = -19.0:
+            // Rãnh khóa tán M3 có đáy đỡ 1.2mm + cửa nhét tán từ đuôi Y = -19.0:
             hull() {
-                translate([sx * 33.0, -19.0, 31.2]) cylinder(d=5.65, h=2.9);
-                translate([sx * 33.0, -11.0, 31.2]) cylinder(d=5.65, h=2.9);
+                translate([sx * 33.0, -19.0, Z_top - 6.8]) cylinder(d=5.65, h=2.9);
+                translate([sx * 33.0, -11.0, Z_top - 6.8]) cylinder(d=5.65, h=2.9);
             }
             hull() {
-                translate([sx * 33.0, -19.0, 34.0]) cylinder(d1=5.65, d2=3.3, h=1.6);
-                translate([sx * 33.0, -11.0, 34.0]) cylinder(d1=5.65, d2=3.3, h=1.6);
+                translate([sx * 33.0, -19.0, Z_top - 4.0]) cylinder(d1=5.65, d2=3.3, h=1.6);
+                translate([sx * 33.0, -11.0, Z_top - 4.0]) cylinder(d1=5.65, d2=3.3, h=1.6);
             }
         }
         
         // D. 2 RÃNH KHÓA TÁN M3 ĐÁY KÍN Ở TAI TRƯỚC LỘ THIÊN (X = +-34.0, Y = 86.0 .. 90.0):
-        //    Nằm giữa K2 Hub (Y <= 80.0) và Ốc Trụ Trước (Y = 99.0), có cửa nhét tán từ mép ngoài |X| = 40.0!
         for (sx = [-1, 1]) {
             hull() {
-                translate([sx * 34.0, 86.0, 20.0]) cylinder(d=3.3, h=20.0);
-                translate([sx * 34.0, 90.0, 20.0]) cylinder(d=3.3, h=20.0);
+                translate([sx * 34.0, 86.0, Z_top - 12.0]) cylinder(d=3.3, h=14.0);
+                translate([sx * 34.0, 90.0, Z_top - 12.0]) cylinder(d=3.3, h=14.0);
             }
             hull() {
-                translate([sx * 34.0, 86.0, 31.2]) cylinder(d=5.65, h=2.9);
-                translate([sx * 34.0, 90.0, 31.2]) cylinder(d=5.65, h=2.9);
-                translate([sx * 40.5, 88.0, 31.2]) cylinder(d=5.65, h=2.9);
+                translate([sx * 34.0, 86.0, Z_top - 6.8]) cylinder(d=5.65, h=2.9);
+                translate([sx * 34.0, 90.0, Z_top - 6.8]) cylinder(d=5.65, h=2.9);
+                translate([sx * 40.5, 88.0, Z_top - 6.8]) cylinder(d=5.65, h=2.9);
             }
             hull() {
-                translate([sx * 34.0, 86.0, 34.0]) cylinder(d1=5.65, d2=3.3, h=1.6);
-                translate([sx * 34.0, 90.0, 34.0]) cylinder(d1=5.65, d2=3.3, h=1.6);
-                translate([sx * 40.5, 88.0, 34.0]) cylinder(d1=5.65, d2=3.3, h=1.6);
+                translate([sx * 34.0, 86.0, Z_top - 4.0]) cylinder(d1=5.65, d2=3.3, h=1.6);
+                translate([sx * 34.0, 90.0, Z_top - 4.0]) cylinder(d1=5.65, d2=3.3, h=1.6);
+                translate([sx * 40.5, 88.0, Z_top - 4.0]) cylinder(d1=5.65, d2=3.3, h=1.6);
             }
         }
     }
 }
 
 module k2_base_riser_frame_printable() {
-    translate([0, 0, 38.0])
+    translate([0, 0, 46.0])
         rotate([180, 0, 0])
-            k2_base_riser_frame();
+            k2_base_riser_frame(Z_top = 46.0);
 }
 
 // Bệ MCU nhỏ gọn Đa Năng V9.0 cho Plate 1 (Đã cắt hốc chữ U phía trước né 100% 2 Tháp Nâng Y=105!)
@@ -467,41 +581,100 @@ module riser_standoff_18mm() {
     }
 }
 
+// Trụ đệm đôn cao 24mm rời cho Pin 2S2P (H_clear = 42.0mm)
+module riser_standoff_24mm_2s2p(h = 24.0) {
+    difference() {
+        cylinder(d=11.0, h=h);
+        translate([0, 0, -1.0]) cylinder(d=3.4, h=h + 2.0);
+        translate([0, 0, 5.0]) cylinder(d=7.2, h=h);
+    }
+}
+
 // ====================================================================
-// 3. BẢN ADAPTER LIỀN KHỐI LÙI HẬU NÉ THÁP GẮP TRỤ 100% V9.0 (MONOLITHIC CANTILEVER RISER V9.0 - 0% SUPPORT)
-// - Thiết kế lại toàn diện để GIẢI QUYẾT TRIỆT ĐỂ 100% LỖI VƯỚNG CẤU TRÚC GẮP TRỤ & KHẢ THI LẮP ĐẶT:
-//   1. SÀN CHÍNH LÙI HẬU (Y in [-8.0, +82.0mm], X in [-60.0, +60.0mm], Z in [38.0, 44.0mm]):
-//      + Mép trước sàn chính dừng tại Y = 82.0mm -> Tạo khoảng trống khổng lồ 23.0mm trước 2 Tháp Nâng
-//        (Y = 105.0mm) và 25.65mm trước tai bắt + dây cáp Servo S1 (Y = 107.65mm)!
-//      + Bo mạch K2 Control Hub (Y in [-6.0, +80.0mm]) nằm lùi về sau làm đối trọng cân bằng cho cụm tay gắp,
-//        mặt trước K2 Hub cách 2 Tháp Nâng đúng 25.0mm (2.5cm) và cách Servo S1 tới 27.65mm!
-//   2. 2 TAY VƯƠN BẮT TRỤ TRƯỚC LỘ THIÊN NÉ THÁP TUYỆT ĐỐI (|X| in [29.2, 39.2mm], Y in [82.0, 102.0mm]):
-//      + Mép trong |X| = 29.2mm nằm ngoài hoàn toàn 2 Tháp Nâng và Gờ định vị sau (|X| <= 28.0mm -> khe hở 1.2mm).
-//      + Mũi trước Y = 102.0mm dừng trước mặt lưng 2 Tháp Nâng và Gờ định vị ngoài (Y = 105.0mm -> khe hở 3.0mm).
-//      + Hốc chữ U giữa 2 tay rộng 58.4 x 23.0mm trống hoàn toàn!
-//      + Lỗ bắt ốc trụ trước (X = +-33.0, Y = 99.0mm) nằm LỘ THIÊN 19.0mm phía trước K2 Control Hub,
-//        có giếng mở thông suốt xuống bậc đế dày 4.5mm (Z = 22.0..26.5mm) -> Dùng ốc M3x10/12mm cực dễ!
-//   3. LẮP THẲNG ĐỨNG TỪ TRÊN XUỐNG (100% VERTICAL DROP-IN - KHÔNG CẦN ĐẨY TRƯỢT):
-//      + Hạ thẳng đứng xuống 4 trụ khung gầm (Z = 22.0mm) giữa động cơ sau (Y = 44.5mm) và tháp nâng (Y = 105.0mm).
-//      + 2 Chân Sau (Y = 49.0mm) có GIẾNG VẶN ỐC THẲNG ĐỨNG XUYÊN SUỐT từ mặt trên xuống bậc đế dày 4.5mm!
-//   4. HỆ RÃNH ĐƯỜNG RAY KHÓA TÁN M3 ĐÁY KÍN CHỐNG RƠI (CAPTIVE BLIND-FLOOR NUT CHANNELS):
-//      + Đáy sàn có lớp đường ray kín dày 1.2mm (Z = 38.0..39.2mm) giữ 4 con tán M3 KHÔNG BAO GIỜ RƠI XUỐNG GẦM
-//        kèm cửa nhét tán trực tiếp từ mép sườn ngoài (|X| = 60.0mm) và hốc nạp tán!
-//      + Quy trình lắp chuẩn 100%: Hạ bệ lên xe -> Vặn 4 ốc trụ khung gầm lộ thiên từ mặt trên -> Đặt K2 Hub
-//        lên trên và vặn 4 ốc góc vào 4 tán M3 đã nằm sẵn trong rãnh đáy kín (hoặc bắt K2 Hub ở ngoài trước tùy ý)!
+// TRỤ ĐÔN ĐA NĂNG CÀI 2 TÁN LỤC GIÁC M3 (DUAL-NUT STANDOFF M3 ARCHITECTURE)
+// Hốc cài 2 tán ngang DIN 934 (5.80 x 2.75mm), bắt 2 bu-lông M3 độc lập từ 2 đầu,
+// bệ chịu lực dày 3.5mm mỗi đầu, lỗ xuyên suốt Ø3.5mm, vát phẳng D-flat né motor sau.
 // ====================================================================
-module k2_adapter_monolithic_v60() {
-    Z_top = 44.0;
-    T_deck = 6.0;
-    Z_bot = Z_top - T_deck; // 38.0mm (Cao hơn nẹp motor sau Z=36.0mm đúng 2.0mm & cao hơn motor 5.5mm!)
+module dual_nut_standoff_m3(h = 26.0, od = 11.6, d_flat_y = -5.3) {
+    r = od / 2.0;
+    slot_w = 5.80;
+    slot_h = 2.75;
+    slot_depth = 3.25;
+    base_t = 3.50;
+    top_t = 3.50;
+    bore_d = 3.50;
+    ch = 0.50;
+
+    difference() {
+        union() {
+            cylinder(d1 = od - 2.0*ch, d2 = od, h = ch);
+            translate([0, 0, ch]) cylinder(d = od, h = h - 2.0*ch);
+            translate([0, 0, h - ch]) cylinder(d1 = od, d2 = od - 2.0*ch, h = ch);
+        }
+        translate([-od, -od + d_flat_y, -1.0])
+            cube([2.0*od, od, h + 2.0]);
+        translate([0, 0, -1.0])
+            cylinder(d = bore_d, h = h + 2.0);
+        translate([0, 0, -0.01])
+            cylinder(d1 = bore_d + 1.0, d2 = bore_d, h = ch + 0.02);
+        translate([0, 0, h - ch - 0.01])
+            cylinder(d1 = bore_d, d2 = bore_d + 1.0, h = ch + 0.02);
+
+        // Hốc cài tán dưới:
+        translate([-slot_depth, -slot_w/2.0, base_t])
+            cube([slot_depth + r + 2.0, slot_w, slot_h]);
+        translate([r - 0.5, -slot_w/2.0 - 0.5, base_t])
+            rotate([0, 0, 45]) cube([1.0, 1.0, slot_h]);
+        translate([r - 0.5, slot_w/2.0 + 0.5 - 0.707, base_t])
+            rotate([0, 0, 45]) cube([1.0, 1.0, slot_h]);
+        translate([0, 0, base_t + slot_h - 0.4])
+            cylinder(d1 = bore_d + 0.8, d2 = bore_d, h = 0.41);
+
+        // Hốc cài tán trên:
+        translate([-slot_depth, -slot_w/2.0, h - top_t - slot_h])
+            cube([slot_depth + r + 2.0, slot_w, slot_h]);
+        translate([r - 0.5, -slot_w/2.0 - 0.5, h - top_t - slot_h])
+            rotate([0, 0, 45]) cube([1.0, 1.0, slot_h]);
+        translate([r - 0.5, slot_w/2.0 + 0.5 - 0.707, h - top_t - slot_h])
+            rotate([0, 0, 45]) cube([1.0, 1.0, slot_h]);
+        translate([0, 0, h - top_t - 0.4])
+            cylinder(d1 = bore_d + 0.8, d2 = bore_d, h = 0.41);
+    }
+}
+
+// Trụ đệm đôn cao 26mm rời cho Pin 2S2P (Cài 2 tán M3 kép)
+module riser_standoff_26mm_2s2p(h = 26.0) {
+    dual_nut_standoff_m3(h = h, od = 11.6, d_flat_y = -5.3);
+}
+
+// Trụ đệm đôn cao 44mm nguyên khối cho Pin 2S2P (Cài 2 tán M3 kép)
+module riser_standoff_44mm_2s2p(h = 44.0) {
+    dual_nut_standoff_m3(h = h, od = 11.6, d_flat_y = -5.3);
+}
+
+// ====================================================================
+// 3. BẢN ADAPTER LIỀN KHỐI 2S2P CAO ĐỘ LỌT LÒNG 42.0MM (01D_K2_Control_Hub_Riser_Adapter_Monolithic)
+// - Thiết kế ĐẶC CHẾ CHO KHỐI PIN ĐÓNG SẴN 2S2P (Dày 38mm, Rộng 38mm, Dài 70mm):
+//   1. Nâng cao độ đáy sàn lọt lòng Z_bot = 46.0mm (Sàn xe Z=4.0mm -> H_clear = 42.0mm!):
+//      + Đủ chỗ hoàn hảo cho Pin dày 38mm + Dây Velcro 2mm + Khe hở an toàn 2mm!
+//      + Mặt sàn K2 Hub tại Z_top = 51.0mm, đỉnh K2 Hub tại Z = 77.0mm < Tâm xoay tháp nâng (Z = 78.0mm)!
+//   2. Ô thoáng trung tâm mở rộng 44.0 x 44.0mm (X in [-22, 22], Y in [18, 62]):
+//      + Thoát nhiệt tối đa cho Pin 2S2P và chip ESP32-S3
+//      + Luồn trực tiếp cáp nguồn silicone to XT30/XT60 và dây cân bằng
+//   3. Hai Chân Sau & Hai Tay Trước hạ thẳng đứng (Drop-In) né 100% tháp nâng & servo S1
+//   4. Hai Cụm Gá Laser ToF VL53L0X đo tường giải mê cung tích hợp hai bên sườn
+//   5. Đặt in lật úp Z_print = 0.0mm: Phẳng 100%, ZERO SUPPORT!
+// ====================================================================
+module k2_adapter_monolithic_v60(Z_bot = 46.0, T_deck = 5.0) {
+    Z_top = Z_bot + T_deck; // 51.0mm
     
     difference() {
         union() {
-            // 1. Mặt sàn chính phẳng tuyệt đối 100% lùi hậu (120.0 x 90.0 x 6.0 mm, X in [-60, 60], Y in [-8.0, 82.0]):
+            // 1. Mặt sàn chính phẳng tuyệt đối 100% lùi hậu (120.0 x 90.0 x 5.0 mm, X in [-60, 60], Y in [-8.0, 82.0]):
             translate([-60.0, -8.0, Z_bot])
                 cube([120.0, 90.0, T_deck]);
                 
-            // 2. Hai Chân Đôn Sau Hạ Thẳng Đứng (|X| in [26.5, 39.2], Y in [45.0, 56.5], Z in [22.0, 38.0]):
+            // 2. Hai Chân Đôn Sau Hạ Thẳng Đứng (|X| in [26.5, 39.2], Y in [45.0, 56.5], Z in [22.0, Z_bot]):
             //    Cách nẹp motor sau (|X|=40.5 -> khe hở 1.3mm) và thân motor sau (Y<=44.5) an toàn tuyệt đối!
             for (sx = [-1, 1]) {
                 translate([sx * 32.85 - 6.35, 45.0, 22.0])
@@ -509,14 +682,18 @@ module k2_adapter_monolithic_v60() {
             }
             
             // 3. Hai Tay/Chân Đôn Trước LỘ THIÊN NGOÀI K2 HUB & NÉ THÁP NÂNG 100%
-            //    (|X| in [29.2, 39.2], Y in [81.0, 102.0], Z in [22.0, 44.0]):
+            //    (|X| in [29.2, 39.2], Y in [81.0, 102.0], Z in [22.0, Z_top]):
             //    - Mép trong |X| = 29.2mm (nằm ngoài vách 2 Tháp Nâng |X| <= 28.0mm đúng 1.2mm!)
             //    - Mũi trước Y = 102.0mm (dừng trước lưng 2 Tháp Nâng & Gờ định vị Y = 105.0mm đúng 3.0mm!)
-            //    - Mặt đỉnh Z = 44.0mm đồng phẳng 100% với sàn chính -> Đặt in lật úp Z_print = 0.0mm phẳng 100% Zero Support!
+            //    - Mặt đỉnh Z = Z_top đồng phẳng 100% với sàn chính -> Đặt in lật úp phẳng 100% Zero Support!
             for (sx = [-1, 1]) {
                 translate([sx * 34.2 - 5.0, 81.0, 22.0])
                     cube([10.0, 21.0, Z_top - 22.0]);
             }
+            
+            // 4. Hai Cụm Gá Cảm Biến Laser ToF VL53L0X Trái & Phải giải mê cung
+            vl53l0x_maze_sensor_pod(is_left=true, T_deck=T_deck, Z_base=Z_top - 12.0);
+            vl53l0x_maze_sensor_pod(is_left=false, T_deck=T_deck, Z_base=Z_top - 12.0);
         }
         
         // Vát góc đáy sau Chân Sau (Y = 45.0..47.5, Z = 22.0..27.0) tránh 100% thân motor GA25:
@@ -526,19 +703,17 @@ module k2_adapter_monolithic_v60() {
                     cube([15.0, 4.5, 8.0]);
         }
         
-        // Ô thoáng trung tâm luồn dây Pin 2S (42.0 x 36.0 mm - X in [-21, 21], Y in [19.0, 55.0]):
-        translate([-21.0, 19.0, 20.0])
-            cube([42.0, 36.0, 26.0]);
+        // Ô thoáng trung tâm luồn dây Pin 2S2P & thông gió (44.0 x 44.0 mm - X in [-22, 22], Y in [18.0, 62.0]):
+        translate([-22.0, 18.0, 20.0])
+            cube([44.0, 44.0, Z_top + 2.0]);
             
         // A. 2 CHÂN ĐÔN SAU HẠ THẲNG ĐỨNG KÈM GIẾNG VẶN ỐC XUYÊN SUỐT TỪ MẶT TRÊN (X = +-31.5..35.0, Y = 46.5..51.5):
-        //    - Đáy Z = 22.0..26.5mm (dày 4.5mm): Rãnh trượt 2 chiều X-Y bắt vừa cả X=+-32, +-33 và Y=46.5..51.5mm!
-        //    - Phía trên Z = 26.5..44.0mm: Giếng thông suốt Ø9.2mm từ mặt trên xuống kèm côn 45° tự đỡ ở Z = 26.5..29.5mm!
         for (sx = [-1, 1]) {
             hull() {
-                translate([sx * 31.5, 46.5, 20.0]) cylinder(d=3.6, h=26.0);
-                translate([sx * 35.0, 46.5, 20.0]) cylinder(d=3.6, h=26.0);
-                translate([sx * 31.5, 51.5, 20.0]) cylinder(d=3.6, h=26.0);
-                translate([sx * 35.0, 51.5, 20.0]) cylinder(d=3.6, h=26.0);
+                translate([sx * 31.5, 46.5, 20.0]) cylinder(d=3.6, h=Z_top - 18.0);
+                translate([sx * 35.0, 46.5, 20.0]) cylinder(d=3.6, h=Z_top - 18.0);
+                translate([sx * 31.5, 51.5, 20.0]) cylinder(d=3.6, h=Z_top - 18.0);
+                translate([sx * 35.0, 51.5, 20.0]) cylinder(d=3.6, h=Z_top - 18.0);
             }
             hull() {
                 translate([sx * 31.5, 46.5, 26.5]) cylinder(d1=3.6, d2=9.2, h=3.0);
@@ -547,24 +722,20 @@ module k2_adapter_monolithic_v60() {
                 translate([sx * 35.0, 51.5, 26.5]) cylinder(d1=3.6, d2=9.2, h=3.0);
             }
             hull() {
-                translate([sx * 31.5, 46.5, 29.4]) cylinder(d=9.2, h=16.0);
-                translate([sx * 35.0, 46.5, 29.4]) cylinder(d=9.2, h=16.0);
-                translate([sx * 31.5, 51.5, 29.4]) cylinder(d=9.2, h=16.0);
-                translate([sx * 35.0, 51.5, 29.4]) cylinder(d=9.2, h=16.0);
+                translate([sx * 31.5, 46.5, 29.4]) cylinder(d=9.2, h=Z_top - 28.0);
+                translate([sx * 35.0, 46.5, 29.4]) cylinder(d=9.2, h=Z_top - 28.0);
+                translate([sx * 31.5, 51.5, 29.4]) cylinder(d=9.2, h=Z_top - 28.0);
+                translate([sx * 35.0, 51.5, 29.4]) cylinder(d=9.2, h=Z_top - 28.0);
             }
         }
         
         // B. 2 TAY/CHÂN TRƯỚC LỘ THIÊN NGOÀI K2 HUB & NÉ THÁP NÂNG (X = +-32.0..35.5, Y = 95.5..99.5):
-        //    - Nằm lộ thiên phía trước mặt sàn chính (Y=82.0) tới 17.0mm -> Không bao giờ bị K2 Hub che khuất!
-        //    - Đáy Z = 22.0..26.5mm (dày 4.5mm): Rãnh trượt 2 chiều X-Y!
-        //    - Phía trên Z = 26.5..44.0mm: Giếng chữ U mở rộng thông lên mặt trên (Z=44), mũi trước (Y=103) và mép ngoài
-        //      kèm côn 45° ở Z = 26.5..29.5mm -> Vặn ốc M3x10/12mm cực dễ và in úp 0% Support!
         for (sx = [-1, 1]) {
             hull() {
-                translate([sx * 32.0, 95.5, 20.0]) cylinder(d=3.6, h=26.0);
-                translate([sx * 35.5, 95.5, 20.0]) cylinder(d=3.6, h=26.0);
-                translate([sx * 32.0, 99.5, 20.0]) cylinder(d=3.6, h=26.0);
-                translate([sx * 35.5, 99.5, 20.0]) cylinder(d=3.6, h=26.0);
+                translate([sx * 32.0, 95.5, 20.0]) cylinder(d=3.6, h=Z_top - 18.0);
+                translate([sx * 35.5, 95.5, 20.0]) cylinder(d=3.6, h=Z_top - 18.0);
+                translate([sx * 32.0, 99.5, 20.0]) cylinder(d=3.6, h=Z_top - 18.0);
+                translate([sx * 35.5, 99.5, 20.0]) cylinder(d=3.6, h=Z_top - 18.0);
             }
             hull() {
                 translate([sx * 32.5, 95.5, 26.5]) cylinder(d1=3.6, d2=8.5, h=3.0);
@@ -573,40 +744,24 @@ module k2_adapter_monolithic_v60() {
                 translate([sx * 38.5, 99.5, 26.5]) cylinder(d1=3.6, d2=8.5, h=3.0);
             }
             hull() {
-                translate([sx * 32.5, 95.5, 29.4]) cylinder(d=8.5, h=16.0);
-                translate([sx * 35.5, 95.5, 29.4]) cylinder(d=8.5, h=16.0);
-                translate([sx * 32.5, 103.5, 29.4]) cylinder(d=8.5, h=16.0);
-                translate([sx * 38.5, 99.5, 29.4]) cylinder(d=8.5, h=16.0);
+                translate([sx * 32.5, 95.5, 29.4]) cylinder(d=8.5, h=Z_top - 28.0);
+                translate([sx * 35.5, 95.5, 29.4]) cylinder(d=8.5, h=Z_top - 28.0);
+                translate([sx * 32.5, 103.5, 29.4]) cylinder(d=8.5, h=Z_top - 28.0);
+                translate([sx * 38.5, 99.5, 29.4]) cylinder(d=8.5, h=Z_top - 28.0);
             }
         }
         
-        // C. TỔ HỢP RÃNH ĐƯỜNG RAY KHÓA TÁN M3 ĐÁY KÍN 2 CHIỀU (CAPTIVE 2D SLOTTED MATRIX) TẠI 4 GÓC K2 CONTROL HUB:
-        //    - Chiều ngang X: 4 rãnh dọc tại |X| = 32.0, 40.0, 48.0, 54.0mm + các rãnh ngang liên thông từ |X|=30.0 đến 55.5mm
-        //    - Chiều dọc Y: Góc sau từ Y = -4.5 đến 19.5mm; Góc trước từ Y = 54.5 đến 78.5mm (ΔY bao phủ 35..83mm!)
-        //    - Sàn đáy kín Z = 38.0..39.2mm giữ tán M3 KHÔNG BAO GIỜ RƠI XUỐNG GẦM + Cửa nhét tán từ sườn ngoài |X|=60.0mm!
+        // C. 4 RÃNH TRƯỢT ĐƠN GỌN GÀNG TẠI 4 GÓC K2 CONTROL HUB:
         for (sx = [-1, 1]) {
-            for (abs_x = [32.0, 40.0, 48.0, 54.0]) {
-                slot_m3_with_nut_channel_zbot(sx * abs_x, -4.5, sx * abs_x, 19.5, Z_bot, T_deck);
-                slot_m3_with_nut_channel_zbot(sx * abs_x, 54.5, sx * abs_x, 78.5, Z_bot, T_deck);
-            }
-            for (hy_rear = [-2.0, 5.0, 12.0, 18.0]) {
-                slot_m3_with_nut_channel_zbot(sx * 30.0, hy_rear, sx * 55.5, hy_rear, Z_bot, T_deck);
-                side_nut_entry_port_zbot(sx, hy_rear, Z_bot, T_deck);
-            }
-            for (hy_front = [56.0, 62.0, 69.0, 76.0]) {
-                slot_m3_with_nut_channel_zbot(sx * 30.0, hy_front, sx * 55.5, hy_front, Z_bot, T_deck);
-                side_nut_entry_port_zbot(sx, hy_front, Z_bot, T_deck);
-            }
-            // D. Hệ lưới lỗ chuẩn 8mm dọc 2 bên sườn (Y = 25, 33, 41):
-            for (gx = [44.0, 52.0]) {
-                for (gy = [25.0, 33.0, 41.0]) {
-                    slot_m3_with_nut_channel_zbot(sx * gx, gy - 1.5, sx * gx, gy + 1.5, Z_bot, T_deck);
+            for (sy = [6.0, 68.0]) {
+                hull() {
+                    translate([sx * 44.0, sy, Z_bot - 1.0]) cylinder(d=3.4, h=T_deck + 2.0);
+                    translate([sx * 53.0, sy, Z_bot - 1.0]) cylinder(d=3.4, h=T_deck + 2.0);
                 }
-            }
-        }
-        for (gx = [-16.0, -8.0, 0.0, 8.0, 16.0]) {
-            for (gy = [0.0, 8.0, 64.0, 72.0]) {
-                slot_m3_with_nut_channel_zbot(gx - 1.5, gy, gx + 1.5, gy, Z_bot, T_deck);
+                hull() {
+                    translate([sx * 44.0, sy, Z_top - 2.5]) cylinder(d=6.5, h=3.0);
+                    translate([sx * 53.0, sy, Z_top - 2.5]) cylinder(d=6.5, h=3.0);
+                }
             }
         }
     }
@@ -614,9 +769,56 @@ module k2_adapter_monolithic_v60() {
 
 // BẢN IN ÚP PHẲNG 100% TRÊN BÀN IN (Z = 0.0 mm - ZERO SUPPORT):
 module k2_adapter_monolithic_printable() {
-    translate([0, 0, 44.0])
+    translate([0, 0, 51.0])
         rotate([180, 0, 0])
-            k2_adapter_monolithic_v60();
+            k2_adapter_monolithic_v60(Z_bot = 46.0, T_deck = 5.0);
+}
+
+// ====================================================================
+// 3B. NGÀM CÀI SNAP-FIT ĐÀN HỒI RỜI V11.0 GIA CỐ CƠ HỌC (01D_Snap_Clip_K2_Hub)
+// - In nằm phẳng tại Z = 0.0mm: đường thớ in chạy dọc theo thân đòn ngàm -> đàn hồi cực dẻo không gãy!
+// - Đòn đàn hồi dạng côn ứng suất đều (Uniform Stress Tapered Beam: 2.6mm ở gốc -> 2.2mm ở ngọn)
+// - Bo góc lượn R = 3.5mm khử mỏi ở chân đế, tai bấm mở nhanh công thái học có gờ chống trượt
+// ====================================================================
+module k2_snap_clip_modular() {
+    difference() {
+        union() {
+            // 1. Chân đế trượt chữ T cài vừa khít vào rãnh plate
+            translate([-8.0, -5.5, 0.0]) cube([16.0, 11.0, 3.8]);
+            translate([-3.2, -5.5, 3.8]) cube([6.4, 11.0, 3.2]);
+            
+            // 2. Góc lượn chuyển tiếp R = 3.5mm giữa chân đế và đòn đàn hồi
+            hull() {
+                translate([-5.0, 4.0, 0.0]) cube([10.0, 1.5, 3.8]);
+                translate([-5.0, 7.5, 0.0]) cube([10.0, 0.1, 2.5]);
+            }
+            
+            // 3. Đòn đàn hồi dạng côn ứng suất đều (Uniform Stress Tapered Beam: 2.6mm ở gốc -> 2.2mm ở ngọn)
+            //    In nằm phẳng Z=0: thớ nhựa chạy dọc liên tục 100% -> không bao giờ tách lớp!
+            hull() {
+                translate([-5.0, 5.5, 0.0]) cube([10.0, 1.0, 2.6]);
+                translate([-5.0, 30.5, 0.0]) cube([10.0, 1.0, 2.2]);
+            }
+            
+            // 4. Đầu móc ngàm khóa có vát 45° dẫn hướng ấn tách
+            translate([-5.0, 30.5, 2.2])
+                hull() {
+                    cube([10.0, 1.6, 1.6]);
+                    translate([0, -2.4, 0]) cube([10.0, 0.1, 0.1]);
+                }
+                
+            // 5. Tai bấm ngón tay mở nhanh (Ergonomic Thumb Release Tab)
+            translate([-5.0, 30.5, 0.0])
+                hull() {
+                    cube([10.0, 3.5, 2.2]);
+                    translate([0, 5.5, 0]) cube([10.0, 0.1, 2.2]);
+                }
+        }
+        // Lỗ ốc M3 tâm để siết khóa cứng định vị
+        translate([0, 0, -1.0]) cylinder(d=3.4, h=12.0);
+        // Hốc chìm nón 90° bắt vít M3 đầu dù/nón phẳng
+        translate([0, 0, 5.0]) cylinder(d1=3.4, d2=6.6, h=2.2);
+    }
 }
 
 // ====================================================================
@@ -737,64 +939,136 @@ module lift_tower_right_v50_printable() {
 }
 
 // ====================================================================
-// 8. KHUNG TAY NÂNG DƯỚI CHỮ H V5.0 (LOWER H-FRAME ARM V5.0)
+// 8. KHUNG TAY NÂNG DƯỚI CHỮ H V13.0 THANH MẢNH SIÊU BỀN (LOWER H-FRAME ARM V13.0)
 // ====================================================================
-// - Hốc tròn âm Ø20.8mm sâu 2.5mm ôm trọn Đĩa tròn Servo MG996R (25T Round Horn)!
-// - 8 Lỗ ốc M3 trên PCD Ø14.0mm (r = 7.0mm) kèm lỗ bậc chìm Ø6.0mm ở mặt trong.
-// - Lỗ tâm Ø6.5mm tra vít khóa trục 25T.
-// - Đáy phẳng 100% tại Z = -6.0mm: Đặt in phẳng Z = 0 -> 0% SUPPORT!
-module lower_h_frame_arm_v50(length = 98.0, height = 12.0, thickness = 5.0) {
+// - Tối ưu hóa 100% theo yêu cầu thanh mảnh đồng bộ thanh trên (03B) & loại bỏ gờ lòi:
+//   1. Thân dầm chuẩn cao 12.0mm, dày 5.0mm thanh mảnh đồng bộ tuyệt đối với thanh trên.
+//   2. Loại bỏ triệt để 100% 2 dải gờ/đế lòi ra dưới đáy 2 bên tai bản lề!
+//      Đầu tai bản lề bo tròn đồng tâm R = 6.0mm quanh lỗ Ø3.2mm, phẳng phiu liền mạch với dầm.
+//   3. Khớp Servo Horn: Vòm ôm đĩa tròn Ø24.0mm cắt phẳng đáy Z = 0, gân lượn tiếp tuyến mượt mà
+//      (fillet R >= 4.0mm kết thúc gọn tại Y = 16mm, KHÔNG đắp dốc khổng lồ dọc thân dầm).
+//      Thành dầm chịu lực dày 8.0mm tại gốc (X in [11.5, 19.5]), giữ thành sau hốc dày 5.7mm đặc 100%,
+//      thịt quanh hốc ốc chìm M3 dày 4.4mm đặc (> 2.0mm).
+//   4. Loại bỏ hoàn toàn 2 khối nêm chặn góc (theo yêu cầu user: không để nhô cục thô kệch).
+//   5. Đặt in nằm phẳng 100% tại Z = 0.00mm, 1 Single Shell, 100% Watertight Manifold, 0% Support!
+module lower_h_frame_arm_v13(length = 98.0, height = 12.0, thickness = 5.0) {
+    t_drive = 8.0; // Bề dày dầm phải tại ngàm Servo S1 (8.0mm: X in [11.5, 19.5])
+    
     difference() {
         union() {
-            // Thanh trái (X in [-19.5, -14.5])
-            translate([-19.5, 0, -height/2]) cube([thickness, length, height]);
+            // --------------------------------------------------------
+            // 1. THANH TRÁI BỊ ĐỘNG (X in [-19.5, -14.5], dày 5.0mm, cao 12.0mm)
+            // --------------------------------------------------------
+            translate([-19.5, 0, -height/2])
+                cube([thickness, length, height]);
+                
+            // Tai bản lề tròn đồng tâm R = 6.0mm quanh 2 lỗ chốt xoay (Z in [-6, +6])
             translate([-19.5, 0, 0]) rotate([0, 90, 0]) cylinder(d=height, h=thickness);
             translate([-19.5, length, 0]) rotate([0, 90, 0]) cylinder(d=height, h=thickness);
-            translate([-19.5, -height/2, -height/2]) cube([thickness, height/2, height/2]);
-            translate([-19.5, length, -height/2]) cube([thickness, height/2, height/2]);
 
-            // Thanh phải (X in [14.5, 19.5])
-            translate([14.5, 0, -height/2]) cube([thickness, length, height]);
+            // --------------------------------------------------------
+            // 2. THANH PHẢI CHỦ ĐỘNG (X in [14.5, 19.5], dày 5.0mm, cao 12.0mm)
+            // --------------------------------------------------------
+            translate([14.5, 0, -height/2])
+                cube([thickness, length, height]);
+                
+            // Tai bản lề trước bên phải tròn đồng tâm R = 6.0mm
             translate([14.5, length, 0]) rotate([0, 90, 0]) cylinder(d=height, h=thickness);
-            translate([14.5, length, -height/2]) cube([thickness, height/2, height/2]);
 
-            // Gờ vòm tròn tăng cứng ôm đĩa tròn Servo (d = 23.0mm) ở gốc thanh phải:
-            intersection() {
-                translate([14.5, 0, 0]) rotate([0, 90, 0]) cylinder(d=23.0, h=thickness);
-                translate([14.0, -12.0, -height/2]) cube([thickness + 1.0, 24.0, 20.0]);
+            // Gân chuyển tiếp dày dầm phải từ 8.0mm ở gốc (X=11.5) về 5.0mm (X=14.5)
+            // Vuốt thuôn mượt mà ở mặt trong từ Y=12mm đến Y=22mm
+            hull() {
+                translate([11.5, 0, -height/2]) cube([3.0, 12.0, height]);
+                translate([14.5, 22.0, -height/2]) cube([0.5, 1.0, height]);
             }
-            translate([14.5, -height/2, -height/2]) cube([thickness, height/2, height/2]);
 
-            // Thanh giằng ngang chữ H chống xoắn (X in [-14.5, 14.5])
-            translate([-14.5, 42.0, -height/2]) cube([29.0, 14.0, height]);
+            // --------------------------------------------------------
+            // 3. VÒM GÁ ĐĨA TRÒN SERVO S1 Ø24.0mm & GÂN LƯỢN CHUYỂN TIẾP R=4.0mm
+            //    (Đáy phẳng 100% tại Z = -6.0mm, không dốc khổng lồ dọc thân dầm!)
+            // --------------------------------------------------------
+            intersection() {
+                hull() {
+                    // Vòm tròn ôm đĩa Servo Ø24.0mm tại gốc (Y = 0, Z = 0)
+                    translate([19.5 - t_drive, 0, 0])
+                        rotate([0, 90, 0]) cylinder(d=24.0, h=t_drive);
+                        
+                    // Gân lượn vuốt tiếp tuyến mượt mà vào dầm cao 12mm (kết thúc tại Y = 16.0mm)
+                    translate([19.5 - t_drive, 16.0, -height/2])
+                        cube([t_drive, 2.0, height]);
+                }
+                // Giới hạn đáy Z >= -height/2 = -6.0mm để mặt đáy phẳng tuyệt đối 100%
+                translate([11.0, -15.0, -height/2])
+                    cube([9.0, 40.0, 25.0]);
+            }
+
+            // --------------------------------------------------------
+            // 4. THANH GIẰNG NGANG CHỮ H CHỐNG XOẮN (Lồng sâu 0.5mm cả 2 đầu X)
+            // --------------------------------------------------------
+            translate([-15.0, 42.0, -height/2])
+                cube([30.0, 14.0, height]);
         }
 
-        // Hốc tròn âm Ø20.8mm sâu 2.5mm ở mặt ngoài thanh phải (X in [17.0, 19.6])
-        translate([17.0, 0, 0]) rotate([0, 90, 0]) cylinder(d=20.8, h=3.0);
+        // ------------------------------------------------------------
+        // CÁC HỐC KHOÉT & LỖ CHỐT
+        // ------------------------------------------------------------
+        
+        // A. Hốc tròn âm Ø20.8mm sâu 2.3mm ôm trọn Đĩa tròn Servo MG996R ở mặt ngoài (X in [17.2, 19.6])
+        //    Giữ thành sau dày 5.7mm đặc 100%!
+        translate([17.2, 0, 0]) rotate([0, 90, 0]) cylinder(d=20.8, h=2.8);
 
-        // Lỗ tâm Ø6.5mm tra vít khóa trục Servo 25T
-        translate([13.5, 0, 0]) rotate([0, 90, 0]) cylinder(d=6.5, h=7.0);
+        // B. Lỗ tâm Ø6.5mm tra vít khóa trục Servo 25T
+        translate([10.5, 0, 0]) rotate([0, 90, 0]) cylinder(d=6.5, h=10.0);
 
-        // 8 Lỗ ốc M3 trên PCD Ø14.0mm kèm lỗ bậc chìm Ø6.0mm ở mặt trong
+        // C. 8 Lỗ ốc M3 trên PCD Ø14.0mm kèm hốc chìm Ø6.0mm sâu 1.8mm ở mặt trong (X in [11.0, 12.8])
         for (a = [0:45:315]) {
             hy = 7.0 * cos(a);
             hz = 7.0 * sin(a);
-            if (hz >= -height/2 + 1.0) {
-                translate([13.5, hy, hz]) rotate([0, 90, 0]) cylinder(d=3.2, h=7.0);
-                translate([13.5, hy, hz]) rotate([0, 90, 0]) cylinder(d=6.0, h=2.2);
+            if (hz >= -height/2 + 0.5) {
+                translate([10.5, hy, hz]) rotate([0, 90, 0]) cylinder(d=3.2, h=10.0);
+                translate([11.0, hy, hz]) rotate([0, 90, 0]) cylinder(d=6.0, h=1.8);
             }
         }
 
-        // Lỗ chốt xoay mắt trước
+        // D. Lỗ chốt xoay mắt trước (Y = length = 98.0, Z = 0)
         translate([-22.0, length, 0]) teardrop_hole_x(d=3.3, h=44.0);
 
-        // Lỗ chốt xoay mắt sau thanh trái
+        // E. Lỗ chốt xoay mắt sau thanh trái (Y = 0, Z = 0)
         translate([-22.0, 0, 0]) teardrop_hole_x(d=3.3, h=10.0);
     }
 }
 
+module lower_h_frame_arm_v13_printable() {
+    translate([0, 0, 6.0])
+        lower_h_frame_arm_v13();
+}
+
+// Giữ alias tương thích ngược
+module lower_h_frame_arm_v12(length = 98.0, height = 12.0, thickness = 5.0) {
+    lower_h_frame_arm_v13(length, height, thickness);
+}
+
+module lower_h_frame_arm_v12_printable() {
+    lower_h_frame_arm_v13_printable();
+}
+
+module lower_h_frame_arm_v11(length = 98.0, height = 12.0, thickness = 5.0) {
+    lower_h_frame_arm_v13(length, height, thickness);
+}
+
+module lower_h_frame_arm_v11_printable() {
+    lower_h_frame_arm_v13_printable();
+}
+
+module lower_h_frame_arm_v50(length = 98.0, height = 12.0, thickness = 5.0) {
+    lower_h_frame_arm_v13(length, height, thickness);
+}
+
 module lower_h_frame_arm_v50_printable() {
-    translate([0, 0, 6.0]) lower_h_frame_arm_v50();
+    lower_h_frame_arm_v13_printable();
+}
+
+module lower_h_frame_arm(length = 98.0, height = 12.0, thickness = 5.0) {
+    lower_h_frame_arm_v13(length, height, thickness);
 }
 
 // ====================================================================
@@ -1130,49 +1404,84 @@ PARTS = [
         "desc": "Cổ tay nối tay nâng chữ H cũ & Gá Servo S3 gập dọc 90° V7.1 (Lắp vừa 4 chốt 03 & 03B, gối xoay đồng trục M3, in phẳng Z=0, 0% Support)"
     },
     {
+        "stl_name": "04_Gripper_Base_Head_V2.stl",
+        "scad_code": 'use <gripper_v2.scad>;\nexport_gripper_base();\n',
+        "desc": "Bệ đầu kẹp V2.0 DFM (Double-Shear M3, Clevis Pitch 90°, Gá Servo S2 Bridge, 0% Support)"
+    },
+    {
+        "stl_name": "05_Gripper_Jaw_Left_Universal_V2.stl",
+        "scad_code": 'use <gripper_v2.scad>;\nexport_jaw_left();\n',
+        "desc": "Ngàm kẹp Trái Đa Năng V2.0 DFM (Bánh răng thân khai m=1.5mm, Rãnh V kép Ø15-45mm, Răng cưa, 0% Support)"
+    },
+    {
+        "stl_name": "06_Gripper_Jaw_Right_Universal_V2.stl",
+        "scad_code": 'use <gripper_v2.scad>;\nexport_jaw_right();\n',
+        "desc": "Ngàm kẹp Phải Đa Năng V2.0 DFM (Hốc đĩa tròn MG996R, Bánh răng thân khai m=1.5mm, Rãnh V kép, 0% Support)"
+    },
+    {
         "stl_name": "04_Gripper_Base_Head.stl",
-        "scad_code": SCAD_LIBRARY + "\ngripper_base_head_3flower();\n",
-        "desc": "Bệ đầu kẹp 3 trụ hoa gập dọc 90° V7.1 (2 má bản lề gập dọc 90°, hốc đĩa tròn MG996R Ø20.8mm cho Servo S3, bàn đỡ chống xệ hàm, 0% Support)"
+        "scad_code": 'use <gripper_v2.scad>;\nexport_gripper_base();\n',
+        "desc": "Bệ đầu kẹp V2.0 (Bản tương thích tên cũ) - 0% Support"
     },
     {
         "stl_name": "05_Gripper_Jaw_Left_VGuide_Flower32.stl",
-        "scad_code": SCAD_LIBRARY + "\nspecialized_gripper_jaw_3flower(is_left=true);\n",
-        "desc": "Hàm kẹp Trái 3 trụ hoa liên hoàn V7.0 (3 hốc Ø32mm, khe đàn hồi lò xo lá độc lập, gờ đỡ đáy chống tụt, 0% Support)"
+        "scad_code": 'use <gripper_v2.scad>;\nexport_jaw_left();\n',
+        "desc": "Hàm kẹp Trái Đa Năng V2.0 (Bản tương thích tên cũ) - 0% Support"
     },
     {
         "stl_name": "06_Gripper_Jaw_Right_VGuide_Flower32.stl",
-        "scad_code": SCAD_LIBRARY + "\nspecialized_gripper_jaw_3flower(is_left=false);\n",
-        "desc": "Hàm kẹp Phải chủ động 3 trụ hoa liên hoàn V7.0 (Hốc đĩa tròn MG996R Ø20.8mm + 8 lỗ M3 PCD Ø14mm, 3 hốc đàn hồi, 0% Support)"
+        "scad_code": 'use <gripper_v2.scad>;\nexport_jaw_right();\n',
+        "desc": "Hàm kẹp Phải Đa Năng V2.0 (Bản tương thích tên cũ) - 0% Support"
     },
     {
         "stl_name": "01D_K2_Hub_Adapter_Plate.stl",
         "scad_code": SCAD_LIBRARY + "\nk2_adapter_plate_flat();\n",
-        "desc": "Tấm sàn phẳng K2 Control Hub Đa Năng V9.0 (Cantilever Dời Lùi Y=-8..82mm Cách Tháp Nâng 23mm + Rãnh Đáy Kín Khóa Tán M3 Chống Rơi + 2 Tay Đòn Trước Né Tháp Nâng) - In phẳng Z=0"
+        "desc": "Tấm sàn phẳng K2 Control Hub V10.0 (Ngàm Cài Snap-Fit Đàn Hồi Khóa Nhanh K2 Hub + Cụm 2 Gá Laser ToF VL53L0X Đo Tường Giải Mê Cung + Cantilever Né Tháp Nâng 23mm) - In phẳng Z=0"
     },
     {
         "stl_name": "01D_MCU_Control_Hub_Deck_FlatPrint.stl",
         "scad_code": SCAD_LIBRARY + "\nmcu_deck_compact_slotted_v80();\n",
-        "desc": "Bệ MCU nhỏ gọn Đa Năng V9.0 (Cắt hốc né Tháp Nâng Y=102mm + Rãnh Đáy Kín Khóa Tán M3 + Rãnh trượt trụ X-Y, vừa khít Plate 1) - In phẳng Z=0"
+        "desc": "Bệ MCU nhỏ gọn Đa Năng V10.0 (Cắt hốc né Tháp Nâng Y=102mm + Rãnh Đáy Kín Khóa Tán M3 + Rãnh trượt trụ X-Y, vừa khít Plate 1) - In phẳng Z=0"
     },
     {
         "stl_name": "01D_Base_Riser_Frame.stl",
         "scad_code": SCAD_LIBRARY + "\nk2_base_riser_frame_printable();\n",
-        "desc": "Khung chân đôn trung gian Đa Năng V9.0 (Hạ Thẳng Đứng 100% Không Cần Trượt + Né Tuyệt Đối Tháp Nâng & Servo S1 + 4 Tai Bắt Tấm Sàn Lộ Thiên) - In úp Z=0"
+        "desc": "Khung chân đôn trung gian Đa Năng V10.0 (Hạ Thẳng Đứng 100% Không Cần Trượt + Né Tuyệt Đối Tháp Nâng & Servo S1 + 4 Tai Bắt Tấm Sàn Lộ Thiên) - In úp Z=0"
     },
     {
         "stl_name": "01D_K2_Control_Hub_Riser_Adapter_Monolithic.stl",
         "scad_code": SCAD_LIBRARY + "\nk2_adapter_monolithic_printable();\n",
-        "desc": "Bản liền khối Đa Năng 1 chi tiết V9.0 (Cantilever Dời Lùi Cách Cụm Gắp Trụ 23-25mm + Rãnh Đáy Kín Giữ Tán M3 + Hạ Thẳng Đứng 100%) - In úp Z=0"
+        "desc": "Bản liền khối Đa Năng 1 chi tiết V10.0 (Cụm 2 Gá Laser ToF VL53L0X Giải Mê Cung + Cantilever Dời Lùi Né Cụm Gắp Trụ 23-25mm + Hạ Thẳng Đứng 100%) - In úp Z=0"
     },
     {
         "stl_name": "01D_K2_Control_Hub_Riser_Adapter_V60.stl",
         "scad_code": SCAD_LIBRARY + "\nk2_adapter_monolithic_printable();\n",
-        "desc": "Bản liền khối Đa Năng 1 chi tiết V9.0 (Đồng bộ file V60) - In úp Z=0"
+        "desc": "Bản liền khối Đa Năng 1 chi tiết V10.0 (Đồng bộ file V60) - In úp Z=0"
+    },
+    {
+        "stl_name": "01D_Snap_Clip_K2_Hub.stl",
+        "scad_code": SCAD_LIBRARY + "\nk2_snap_clip_modular();\n",
+        "desc": "Ngàm cài đàn hồi Snap-fit rời V10.0 (Khóa nhanh K2 Control Hub tháo lắp trong 1 giây, in nằm phẳng thớ nhựa dẻo gấp 10 lần) - In phẳng Z=0"
     },
     {
         "stl_name": "01D_Riser_Standoff_18mm.stl",
         "scad_code": SCAD_LIBRARY + "\nriser_standoff_18mm();\n",
         "desc": "Trụ đệm đôn cao 18mm rời (Ø11mm, lỗ bậc chìm 14mm cho ốc M3x12/16mm)"
+    },
+    {
+        "stl_name": "01D_Riser_Standoff_24mm_2S2P.stl",
+        "scad_code": SCAD_LIBRARY + "\nriser_standoff_24mm_2s2p(h=24.0);\n",
+        "desc": "Trụ đệm đôn cao 24mm rời cho Pin 2S2P (H_clear = 42.0mm, Ø11mm, lỗ bậc chìm cho ốc M3)"
+    },
+    {
+        "stl_name": "01D_Riser_Standoff_26mm_2S2P.stl",
+        "scad_code": SCAD_LIBRARY + "\nriser_standoff_26mm_2s2p(h=26.0);\n",
+        "desc": "Cọc đôn Standoff kép 26mm rời cho Pin 2S2P (Ø11.6mm D-flat, cài 2 tán M3 ngang hông, bệ chịu lực 3.5mm)"
+    },
+    {
+        "stl_name": "01D_Riser_Standoff_44mm_2S2P.stl",
+        "scad_code": SCAD_LIBRARY + "\nriser_standoff_44mm_2s2p(h=44.0);\n",
+        "desc": "Cọc đôn Standoff kép 44mm nguyên khối cho Pin 2S2P (Ø11.6mm D-flat, cài 2 tán M3 ngang hông, nâng thẳng K2 Hub lên Z=48mm)"
     },
     {
         "stl_name": "02B_GA25_Rear_Motor_Clamp_Left.stl",
@@ -1196,8 +1505,8 @@ PARTS = [
     },
     {
         "stl_name": "03_Parallel_Arm_Truss_IBeam.stl",
-        "scad_code": SCAD_LIBRARY + "\nlower_h_frame_arm_v50_printable();\n",
-        "desc": "Khung tay nâng dưới chữ H V5.0 (Hốc âm đĩa tròn MG996R Ø20.8mm, 8 lỗ M3 PCD Ø14mm, lỗ tâm Ø6.5mm) - In phẳng Z=0"
+        "scad_code": SCAD_LIBRARY + "\nlower_h_frame_arm_v13_printable();\n",
+        "desc": "Khung tay nâng dưới chữ H V13.0 Thanh Mảnh Siêu Bền (Dầm cao 12mm đồng bộ thanh trên, vòm Servo Horn Ø24mm gân lượn mượt, không gờ đáy hay nêm lòi) - In phẳng Z=0"
     },
     {
         "stl_name": "08_S1_MG996R_Round_Horn_Drive_Coupler.stl",

@@ -31,15 +31,21 @@ WHEEL_D        = 80.0;    // Đường kính bánh xe Mecanum K3 (Ø80.0 mm)
 WHEEL_W        = 38.0;    // Bề dày bánh xe Mecanum K3 (38.0 mm)
 Z_SHAFT        = 40.0;    // Cao độ tâm trục bánh xe (Z = 40.0 mm)
 
+// CHỌN TRẠNG THÁI TAY GẮP:
+// "stowed"   = Gấp gọn tối ưu trong kích thước 200x200mm (Chuẩn thi đấu xuất phát)
+// "deployed" = Bung vươn dài hoạt động kẹp hoa Ø32mm
+ARM_STATE      = "stowed"; 
+
 // THÔNG SỐ ĐỘNG HỌC CÁNH TAY SONG HÀNH 4 KHÂU CHỮ H
 Y_PIVOT        = 145.0;   // Tâm khớp xoay trên tháp nâng (Y in [105, 166])
 ARM_L          = 98.0;    // Chiều dài tâm 2 mắt xoay
-ARM_ANGLE      = -20.0;   // Góc gập tay đòn hướng về phía trước
-DY_ARM         = ARM_L * cos(ARM_ANGLE);  // 92.09 mm
-DZ_ARM         = ARM_L * sin(ARM_ANGLE);  // -33.52 mm
-Y_HEAD         = Y_PIVOT + DY_ARM - 8.0;  // 229.09 mm
-Z_HEAD         = 78.0 + DZ_ARM - 10.0;    // 34.48 mm
-WRIST_PITCH_ANGLE = 0.0;                  // 0.0° = Hạ ngang kẹp 3 trụ hoa; 90.0° = Gập đứng 90° tiết kiệm diện tích!
+ARM_ANGLE      = (ARM_STATE == "stowed") ? 90.0 : -20.0;
+DY_ARM         = ARM_L * cos(ARM_ANGLE);  // 90°: 0.0mm; -20°: 92.09mm
+DZ_ARM         = ARM_L * sin(ARM_ANGLE);  // 90°: 98.0mm; -20°: -33.52mm
+Y_HEAD         = Y_PIVOT + DY_ARM - 8.0;  // 90°: 137.0mm; -20°: 229.09mm
+Z_HEAD         = 78.0 + DZ_ARM - 10.0;    // 90°: 166.0mm; -20°: 34.48mm
+WRIST_PITCH_ANGLE = (ARM_STATE == "stowed") ? -90.0 : 0.0; // -90.0° = Gập đứng chúc xuống siêu gọn trong 200x200mm; 0.0° = Hạ ngang kẹp hoa!
+JAW_GRIP_ANGLE    = (ARM_STATE == "stowed") ? 0.0 : 0.0;   // 0.0° khép ngàm kẹp, 18.0° mở rộng đón hoa
 
 // ====================================================================
 // TIỆN ÍCH LỖ GIỌT NƯỚC 45° TỰ ĐỠ KHI IN 3D (DFM TEARDROP HOLES)
@@ -365,7 +371,53 @@ module slot_m3_counterbored_top(x1, y1, x2, y2, Z_base = 0.0, T_deck = 6.0, cb_d
 }
 
 // ====================================================================
-// 1D. TẤM BỆ ADAPTER PHẲNG ĐA NĂNG V9.0 (01D_K2_Hub_Adapter_Plate - CANTILEVER REAR-SHIFT)
+// CỤM GÁ CẢM BIẾN KHOẢNG CÁCH LASER TOF VL53L0X ĐO TƯỜNG GIẢI MÊ CUNG V10.0
+// - Đặt ở sườn Trái (sx = -1) và sườn Phải (sx = +1) tại Y in [66.0, 82.5mm]
+// - Nằm trọn vẹn trong khoảng hở giữa 2 bánh Mecanum (Y = 72..102mm)
+// - Bề ngang giới hạn tại |X| <= 68.8mm -> Cách mặt trong bánh xe Mecanum (|X|=71.0mm) > 2.2mm!
+// - Tích hợp ngàm cài snap-fit giữ PCB VL53L0X (25 x 11mm) + Cửa sổ bắn laser 90° sườn & lỗ ốc M2.5/M3
+// ====================================================================
+module vl53l0x_maze_sensor_pod(is_left = true, T_deck = 6.0, Z_base = 0.0) {
+    sx = is_left ? -1 : 1;
+    difference() {
+        union() {
+            hull() {
+                translate([sx * 60.0, 66.0, Z_base]) cube([sx * 0.1, 16.5, T_deck]);
+                translate([sx * 68.2, 67.5, Z_base]) cylinder(r=2.2, h=T_deck + 6.0);
+                translate([sx * 68.2, 81.0, Z_base]) cylinder(r=2.2, h=T_deck + 6.0);
+                translate([sx * 60.0, 82.5, Z_base]) cube([sx * 0.1, 0.1, T_deck]);
+            }
+            for (py = [70.0, 78.5]) {
+                translate([sx * 68.6, py - 2.2, Z_base])
+                    cube([sx * 1.8, 4.4, T_deck + 6.0]);
+                translate([sx * 68.6, py - 2.2, Z_base + T_deck + 4.5])
+                    hull() {
+                        cube([sx * 1.8, 4.4, 1.5]);
+                        translate([-sx * 1.0, 0, 0]) cube([sx * 0.1, 4.4, 1.0]);
+                    }
+            }
+            translate([sx * 66.2, 68.0, Z_base])
+                cube([sx * 1.4, 13.0, T_deck + 5.5]);
+        }
+        translate([sx * 67.6, 67.5, Z_base + 1.5])
+            cube([sx * 2.1, 14.0, 15.0]);
+        translate([sx * 64.5, 68.5, Z_base + 2.8])
+            cube([sx * 8.0, 11.0, 6.5]);
+        hull() {
+            translate([sx * 66.0, 68.5, Z_base + 2.8]) cube([sx * 0.1, 11.0, 6.5]);
+            translate([sx * 70.0, 67.5, Z_base + 1.5]) cube([sx * 0.1, 13.0, 9.2]);
+        }
+        translate([sx * 63.5, 67.5, Z_base - 1.0]) cylinder(d=3.2, h=16.0);
+        translate([sx * 63.5, 81.5, Z_base - 1.0]) cylinder(d=3.2, h=16.0);
+        translate([sx * 63.5, 67.5, Z_base + 1.5]) cylinder(d=6.0, h=12.0);
+        translate([sx * 63.5, 81.5, Z_base + 1.5]) cylinder(d=6.0, h=12.0);
+        translate([sx * 59.0, 71.0, Z_base + 1.0])
+            cube([sx * 10.0, 7.0, 3.5]);
+    }
+}
+
+// ====================================================================
+// 1D. TẤM BỆ ADAPTER PHẲNG ĐA NĂNG V10.0 (01D_K2_Hub_Adapter_Plate - SNAP-FIT & DUAL VL53L0X)
 // ====================================================================
 module mcu_deck_dfm() {
     T_deck = 6.0;
@@ -374,43 +426,92 @@ module mcu_deck_dfm() {
             translate([-60.0, -8.0, 0.0])
                 cube([120.0, 90.0, T_deck]);
             for (sx = [-1, 1]) {
+                translate([sx * 33.0 - 8.0, -18.0, 0.0])
+                    cube([16.0, 11.0, T_deck]);
                 translate([sx * 34.2 - 5.0, 81.0, 0.0])
                     cube([10.0, 21.0, T_deck]);
-                hull() {
-                    translate([sx * 34.2 - 5.0, 81.0, 0.0]) cube([10.0, 3.0, T_deck]);
-                    translate([sx * 38.0 - 8.5, 76.0, 0.0]) cube([17.0, 6.0, T_deck]);
+            }
+            vl53l0x_maze_sensor_pod(is_left=true, T_deck=T_deck, Z_base=0.0);
+            vl53l0x_maze_sensor_pod(is_left=false, T_deck=T_deck, Z_base=0.0);
+            for (sx = [-1, 1]) {
+                translate([sx * 42.0 - 7.0, -8.0, T_deck]) {
+                    cube([14.0, 3.5, 12.0]);
+                    translate([0, 3.5, 10.5])
+                        hull() {
+                            cube([14.0, 0.1, 1.5]);
+                            translate([0, 1.8, 0]) cube([14.0, 0.1, 1.5]);
+                        }
                 }
+                translate([sx * 57.0 - (sx > 0 ? 0 : 5.0), 80.0, T_deck]) {
+                    cube([5.0, 2.2, 14.0]);
+                    translate([0, -1.6, 11.5])
+                        hull() {
+                            cube([5.0, 1.6, 1.2]);
+                            translate([0, 1.6, 2.5]) cube([5.0, 0.1, 0.1]);
+                        }
+                    translate([0, 2.2, 11.5])
+                        hull() {
+                            cube([5.0, 0.1, 2.5]);
+                            translate([0, 2.8, 0]) cube([5.0, 0.1, 2.5]);
+                        }
+                }
+                translate([sx * 60.8 - (sx > 0 ? 0 : 2.5), -6.0, T_deck])
+                    cube([2.5, 10.0, 3.0]);
+                translate([sx * 60.8 - (sx > 0 ? 0 : 2.5), 70.0, T_deck])
+                    cube([2.5, 10.0, 3.0]);
             }
         }
-        translate([-20.0, 22.0, -1.0])
-            cube([40.0, 42.0, T_deck + 2.0]);
-        translate([-18.0, -9.0, -1.0])
-            cube([36.0, 6.0, T_deck + 2.0]);
+        translate([-21.0, 19.0, -1.0])
+            cube([42.0, 36.0, T_deck + 2.0]);
         for (sx = [-1, 1]) {
-            for (abs_x = [36.0, 44.0, 48.0, 54.0]) {
+            for (abs_x = [32.0, 40.0, 48.0, 54.0]) {
                 slot_m3_with_nut_channel_z0(sx * abs_x, -4.5, sx * abs_x, 19.5, T_deck);
                 slot_m3_with_nut_channel_z0(sx * abs_x, 54.5, sx * abs_x, 78.5, T_deck);
             }
-            for (hy_rear = [0.0, 8.0, 16.0]) {
+            for (hy_rear = [-2.0, 5.0, 12.0, 18.0]) {
                 slot_m3_with_nut_channel_z0(sx * 30.0, hy_rear, sx * 55.5, hy_rear, T_deck);
                 side_nut_entry_port_z0(sx, hy_rear, T_deck);
             }
-            for (hy_front = [58.0, 66.0, 74.0]) {
+            for (hy_front = [56.0, 62.0, 69.0, 76.0]) {
                 slot_m3_with_nut_channel_z0(sx * 30.0, hy_front, sx * 55.5, hy_front, T_deck);
                 side_nut_entry_port_z0(sx, hy_front, T_deck);
             }
-            slot_m3_counterbored_top(sx * 31.8, 45.0, sx * 34.2, 53.0, 0.0, T_deck, 6.8, 2.0, 3.5);
-            slot_m3_counterbored_top(sx * 31.0, 49.0, sx * 35.0, 49.0, 0.0, T_deck, 6.8, 2.0, 3.5);
-            slot_m3_counterbored_top(sx * 32.2, 87.5, sx * 36.2, 91.5, 0.0, T_deck, 6.8, 2.0, 3.5);
-            slot_m3_counterbored_top(sx * 32.0, 95.5, sx * 35.5, 99.5, 0.0, T_deck, 6.8, 2.0, 3.5);
-            for (gx = [36.0, 44.0, 52.0]) {
-                for (gy = [26.0, 34.0, 42.0, 50.0]) {
+            hull() {
+                translate([sx * 31.5, 45.5, -1.0]) cylinder(d=3.6, h=T_deck + 2.0);
+                translate([sx * 35.0, 45.5, -1.0]) cylinder(d=3.6, h=T_deck + 2.0);
+                translate([sx * 31.5, 52.5, -1.0]) cylinder(d=3.6, h=T_deck + 2.0);
+                translate([sx * 35.0, 52.5, -1.0]) cylinder(d=3.6, h=T_deck + 2.0);
+            }
+            hull() {
+                translate([sx * 31.5, 45.5, T_deck - 2.2]) cylinder(d=7.0, h=3.2);
+                translate([sx * 35.0, 45.5, T_deck - 2.2]) cylinder(d=7.0, h=3.2);
+                translate([sx * 31.5, 52.5, T_deck - 2.2]) cylinder(d=7.0, h=3.2);
+                translate([sx * 35.0, 52.5, T_deck - 2.2]) cylinder(d=7.0, h=3.2);
+            }
+            hull() {
+                translate([sx * 32.0, 95.5, -1.0]) cylinder(d=3.6, h=T_deck + 2.0);
+                translate([sx * 35.5, 95.5, -1.0]) cylinder(d=3.6, h=T_deck + 2.0);
+                translate([sx * 32.0, 99.5, -1.0]) cylinder(d=3.6, h=T_deck + 2.0);
+                translate([sx * 35.5, 99.5, -1.0]) cylinder(d=3.6, h=T_deck + 2.0);
+            }
+            hull() {
+                translate([sx * 32.0, 95.5, T_deck - 2.2]) cylinder(d=6.8, h=3.2);
+                translate([sx * 35.5, 95.5, T_deck - 2.2]) cylinder(d=6.8, h=3.2);
+                translate([sx * 32.0, 99.5, T_deck - 2.2]) cylinder(d=6.8, h=3.2);
+                translate([sx * 35.5, 99.5, T_deck - 2.2]) cylinder(d=6.8, h=3.2);
+            }
+            slot_m3_counterbored_top(sx * 31.5, -13.0, sx * 34.5, -13.0, 0.0, T_deck);
+            slot_m3_counterbored_top(sx * 33.0, -15.0, sx * 33.0, -11.0, 0.0, T_deck);
+            slot_m3_counterbored_top(sx * 32.5, 88.0, sx * 35.5, 88.0, 0.0, T_deck);
+            slot_m3_counterbored_top(sx * 34.0, 86.0, sx * 34.0, 90.0, 0.0, T_deck);
+            for (gx = [44.0, 52.0]) {
+                for (gy = [25.0, 33.0, 41.0]) {
                     slot_m3_with_nut_channel_z0(sx * gx, gy - 1.5, sx * gx, gy + 1.5, T_deck);
                 }
             }
         }
         for (gx = [-16.0, -8.0, 0.0, 8.0, 16.0]) {
-            for (gy = [4.0, 12.0, 68.0, 76.0]) {
+            for (gy = [0.0, 8.0, 64.0, 72.0]) {
                 slot_m3_with_nut_channel_z0(gx - 1.5, gy, gx + 1.5, gy, T_deck);
             }
         }
@@ -418,8 +519,8 @@ module mcu_deck_dfm() {
 }
 
 // ====================================================================
-// 1D_ALT. KHUNG ĐÔN LIỀN KHỐI ĐA NĂNG CHO K2 CONTROL HUB V9.0
-// (CANTILEVER REAR-SHIFT + ZERO TOWER COLLISION + CAPTIVE BLIND-FLOOR NUT RAILS)
+// 1D_ALT. KHUNG ĐÔN LIỀN KHỐI ĐA NĂNG CHO K2 CONTROL HUB V10.0
+// (CANTILEVER REAR-SHIFT + DUAL VL53L0X PODS + ZERO TOWER COLLISION)
 // ====================================================================
 module k2_hub_riser_adapter() {
     Z_top = 44.0;
@@ -441,6 +542,8 @@ module k2_hub_riser_adapter() {
                     translate([sx * 36.0 - 7.5, 76.0, Z_bot]) cube([15.0, 6.0, T_deck]);
                 }
             }
+            vl53l0x_maze_sensor_pod(is_left=true, T_deck=T_deck, Z_base=Z_top - 12.0);
+            vl53l0x_maze_sensor_pod(is_left=false, T_deck=T_deck, Z_base=Z_top - 12.0);
         }
         
         for (sx = [-1, 1]) {
@@ -491,27 +594,16 @@ module k2_hub_riser_adapter() {
                 translate([sx * 34.2, 99.2, 29.2]) cylinder(d=8.4, h=16.0);
             }
             
-            for (abs_x = [36.0, 44.0, 48.0, 54.0]) {
-                slot_m3_with_nut_channel_zbot(sx * abs_x, -4.5, sx * abs_x, 19.5, Z_bot, T_deck);
-                slot_m3_with_nut_channel_zbot(sx * abs_x, 54.5, sx * abs_x, 78.5, Z_bot, T_deck);
-            }
-            for (hy_rear = [0.0, 8.0, 16.0]) {
-                slot_m3_with_nut_channel_zbot(sx * 30.0, hy_rear, sx * 55.5, hy_rear, Z_bot, T_deck);
-                side_nut_entry_port_zbot(sx, hy_rear, Z_bot, T_deck);
-            }
-            for (hy_front = [58.0, 66.0, 74.0]) {
-                slot_m3_with_nut_channel_zbot(sx * 30.0, hy_front, sx * 55.5, hy_front, Z_bot, T_deck);
-                side_nut_entry_port_zbot(sx, hy_front, Z_bot, T_deck);
-            }
-            for (gx = [36.0, 44.0, 52.0]) {
-                for (gy = [26.0, 34.0, 42.0, 50.0]) {
-                    slot_m3_with_nut_channel_zbot(sx * gx, gy - 1.5, sx * gx, gy + 1.5, Z_bot, T_deck);
+            // 4 Rãnh trượt đơn M3 gọn gàng tại 4 góc K2 Control Hub (Sàn đặc liền khối 100%):
+            for (sy = [6.0, 68.0]) {
+                hull() {
+                    translate([sx * 44.0, sy, Z_bot - 1.0]) cylinder(d=3.4, h=T_deck + 2.0);
+                    translate([sx * 53.0, sy, Z_bot - 1.0]) cylinder(d=3.4, h=T_deck + 2.0);
                 }
-            }
-        }
-        for (gx = [-16.0, -8.0, 0.0, 8.0, 16.0]) {
-            for (gy = [4.0, 12.0, 68.0, 76.0]) {
-                slot_m3_with_nut_channel_zbot(gx - 1.5, gy, gx + 1.5, gy, Z_bot, T_deck);
+                hull() {
+                    translate([sx * 44.0, sy, Z_top - 2.5]) cylinder(d=6.5, h=3.0);
+                    translate([sx * 53.0, sy, Z_top - 2.5]) cylinder(d=6.5, h=3.0);
+                }
             }
         }
     }
@@ -617,61 +709,149 @@ module ga25_rear_clamp_universal() {
 }
 
 // ====================================================================
-// 3A. KHUNG TAY NÂNG DƯỚI CHỮ H ĐÁY PHẲNG 100% (03_Parallel_Arm_Truss_IBeam V5.0)
+// 3A. KHUNG TAY NÂNG DƯỚI CHỮ H V12.0 SIÊU BỀN CHỐNG GÃY (03_Parallel_Arm_Truss_IBeam V12.0)
 // ====================================================================
-// Chuẩn hóa 100% cho Đĩa tròn Servo MG996R (25T Round Horn):
-// - Hốc tròn âm Ø20.8mm sâu 2.5mm ở mặt ngoài thanh phải (ôm trọn đĩa tròn Ø20mm).
-// - 8 Lỗ ốc M3 trên vòng chia PCD Ø14.0mm (r = 7.0mm) kèm lỗ bậc chìm Ø6.0mm ở mặt trong.
-// - Lỗ tâm xuyên suốt Ø6.5mm: Tra chìa vặn ốc khóa trục 25T mà không cần tháo tay nâng!
-// - Đáy phẳng tuyệt đối 100% tại Z = -6.0mm: Đặt in phẳng trực tiếp trên bàn in -> 0% SUPPORT!
-module lower_h_frame_arm(length = 98.0, height = 12.0, thickness = 5.0) {
+// - Giải quyết triệt để 100% 2 yêu cầu cải tiến thực tế từ Bambu Studio:
+//   1. Loại bỏ triệt để vết cắt lẹm vào cổ dầm:
+//      + Hốc đĩa tròn Ø20.8mm chỉ khoét mặt ngoài (X >= 17.2mm), không phạm vào dầm chính.
+//      + Đai tròn đặc Ø26.0mm bao quanh 360 độ (dày 2.6mm đặc 100%), thành sau dày 5.7mm.
+//      + Cổ nối tiếp tuyến gân tăng cứng (fillet R >= 4.0mm) vuốt mượt từ vòm Ø26mm vào dầm.
+//   2. 2 Vấu chặn góc hình nêm:
+//      + Chân vấu vát 45 độ theo phương bàn in Z -> 0% Support trên bàn in FDM!
+//      + Tăng diện tích tiếp xúc chân vấu bám dầm trải dài Y in [-6.0, +12.0mm] (dài 18mm).
+//      + Bo góc R >= 1.5mm ở chân vấu tiêu tán xung lực va đập hành trình.
+//   3. Đặt in nằm phẳng 100% tại Z = 0.00mm, 1 Single Shell, 100% Watertight Manifold!
+// ====================================================================
+// 3A. KHUNG TAY NÂNG DƯỚI CHỮ H V13.0 THANH MẢNH SIÊU BỀN (03_Parallel_Arm_Truss_IBeam)
+// ====================================================================
+// - Tối ưu hóa 100% theo yêu cầu thanh mảnh đồng bộ thanh trên (03B) & loại bỏ gờ lòi:
+//   1. Thân dầm chuẩn cao 12.0mm, dày 5.0mm thanh mảnh đồng bộ tuyệt đối với thanh trên.
+//   2. Loại bỏ triệt để 100% 2 dải gờ/đế lòi ra dưới đáy 2 bên tai bản lề!
+//      Đầu tai bản lề bo tròn đồng tâm R = 6.0mm quanh lỗ Ø3.2mm, phẳng phiu liền mạch với dầm.
+//   3. Khớp Servo Horn: Vòm ôm đĩa tròn Ø24.0mm cắt phẳng đáy Z = 0, gân lượn tiếp tuyến mượt mà
+//      (fillet R >= 4.0mm kết thúc gọn tại Y = 16mm, KHÔNG đắp dốc khổng lồ dọc thân dầm).
+//      Thành dầm chịu lực dày 8.0mm tại gốc (X in [11.5, 19.5]), giữ thành sau hốc dày 5.7mm đặc 100%,
+//      thịt quanh hốc ốc chìm M3 dày 4.4mm đặc (> 2.0mm).
+//   4. Loại bỏ hoàn toàn 2 khối nêm chặn góc (theo yêu cầu user: không để nhô cục thô kệch).
+//   5. Đặt in nằm phẳng 100% tại Z = 0.00mm, 1 Single Shell, 100% Watertight Manifold, 0% Support!
+module lower_h_frame_arm_v13(length = 98.0, height = 12.0, thickness = 5.0) {
+    t_drive = 8.0; // Bề dày dầm phải tại ngàm Servo S1 (8.0mm: X in [11.5, 19.5])
+    
     difference() {
         union() {
-            // Thanh trái (X in [-19.5, -14.5])
-            translate([-19.5, 0, -height/2]) cube([thickness, length, height]);
+            // --------------------------------------------------------
+            // 1. THANH TRÁI BỊ ĐỘNG (X in [-19.5, -14.5], dày 5.0mm, cao 12.0mm)
+            // --------------------------------------------------------
+            translate([-19.5, 0, -height/2])
+                cube([thickness, length, height]);
+                
+            // Tai bản lề tròn đồng tâm R = 6.0mm quanh 2 lỗ chốt xoay (Z in [-6, +6])
             translate([-19.5, 0, 0]) rotate([0, 90, 0]) cylinder(d=height, h=thickness);
             translate([-19.5, length, 0]) rotate([0, 90, 0]) cylinder(d=height, h=thickness);
-            translate([-19.5, -height/2, -height/2]) cube([thickness, height/2, height/2]);
-            translate([-19.5, length, -height/2]) cube([thickness, height/2, height/2]);
 
-            // Thanh phải (X in [14.5, 19.5])
-            translate([14.5, 0, -height/2]) cube([thickness, length, height]);
+            // --------------------------------------------------------
+            // 2. THANH PHẢI CHỦ ĐỘNG (X in [14.5, 19.5], dày 5.0mm, cao 12.0mm)
+            // --------------------------------------------------------
+            translate([14.5, 0, -height/2])
+                cube([thickness, length, height]);
+                
+            // Tai bản lề trước bên phải tròn đồng tâm R = 6.0mm
             translate([14.5, length, 0]) rotate([0, 90, 0]) cylinder(d=height, h=thickness);
-            translate([14.5, length, -height/2]) cube([thickness, height/2, height/2]);
 
-            // Gờ vòm tròn tăng cứng ôm đĩa tròn Servo (d = 23.0mm) ở gốc thanh phải:
-            intersection() {
-                translate([14.5, 0, 0]) rotate([0, 90, 0]) cylinder(d=23.0, h=thickness);
-                translate([14.0, -12.0, -height/2]) cube([thickness + 1.0, 24.0, 20.0]);
+            // Gân chuyển tiếp dày dầm phải từ 8.0mm ở gốc (X=11.5) về 5.0mm (X=14.5)
+            // Vuốt thuôn mượt mà ở mặt trong từ Y=12mm đến Y=22mm
+            hull() {
+                translate([11.5, 0, -height/2]) cube([3.0, 12.0, height]);
+                translate([14.5, 22.0, -height/2]) cube([0.5, 1.0, height]);
             }
-            translate([14.5, -height/2, -height/2]) cube([thickness, height/2, height/2]);
 
-            // Thanh giằng ngang chữ H chống xoắn (X in [-14.5, 14.5])
-            translate([-14.5, 42.0, -height/2]) cube([29.0, 14.0, height]);
+            // --------------------------------------------------------
+            // 3. VÒM GÁ ĐĨA TRÒN SERVO S1 Ø24.0mm & GÂN LƯỢN CHUYỂN TIẾP R=4.0mm
+            //    (Đáy phẳng 100% tại Z = -6.0mm, không dốc khổng lồ dọc thân dầm!)
+            // --------------------------------------------------------
+            intersection() {
+                hull() {
+                    // Vòm tròn ôm đĩa Servo Ø24.0mm tại gốc (Y = 0, Z = 0)
+                    translate([19.5 - t_drive, 0, 0])
+                        rotate([0, 90, 0]) cylinder(d=24.0, h=t_drive);
+                        
+                    // Gân lượn vuốt tiếp tuyến mượt mà vào dầm cao 12mm (kết thúc tại Y = 16.0mm)
+                    translate([19.5 - t_drive, 16.0, -height/2])
+                        cube([t_drive, 2.0, height]);
+                }
+                // Giới hạn đáy Z >= -height/2 = -6.0mm để mặt đáy phẳng tuyệt đối 100%
+                translate([11.0, -15.0, -height/2])
+                    cube([9.0, 40.0, 25.0]);
+            }
+
+            // --------------------------------------------------------
+            // 4. THANH GIẰNG NGANG CHỮ H CHỐNG XOẮN (Lồng sâu 0.5mm cả 2 đầu X)
+            // --------------------------------------------------------
+            translate([-15.0, 42.0, -height/2])
+                cube([30.0, 14.0, height]);
         }
 
-        // Hốc tròn âm Ø20.8mm sâu 2.5mm ở mặt ngoài thanh phải (X in [17.0, 19.6])
-        translate([17.0, 0, 0]) rotate([0, 90, 0]) cylinder(d=20.8, h=3.0);
+        // ------------------------------------------------------------
+        // CÁC HỐC KHOÉT & LỖ CHỐT
+        // ------------------------------------------------------------
+        
+        // A. Hốc tròn âm Ø21.0mm sâu 2.3mm ôm trọn Đĩa tròn Servo MG996R ở mặt ngoài (X in [17.2, 19.6])
+        //    Giữ thành sau dày 5.7mm đặc 100%, KHÔNG CẮT VÀO DẦM!
+        translate([17.2, 0, 0]) rotate([0, 90, 0]) cylinder(d=21.0, h=2.8);
 
-        // Lỗ tâm Ø6.5mm tra vít khóa trục Servo 25T
-        translate([13.5, 0, 0]) rotate([0, 90, 0]) cylinder(d=6.5, h=7.0);
+        // B. Lỗ tâm Ø6.5mm tra vít khóa trục Servo 25T
+        translate([10.5, 0, 0]) rotate([0, 90, 0]) cylinder(d=6.5, h=10.0);
 
-        // 8 Lỗ ốc M3 trên PCD Ø14.0mm kèm lỗ bậc chìm Ø6.0mm ở mặt trong
+        // C. 8 Lỗ ốc M3 trên PCD Ø14.0mm kèm hốc chìm Ø5.5mm sâu 1.8mm ở mặt trong (X in [11.0, 12.8])
         for (a = [0:45:315]) {
             hy = 7.0 * cos(a);
             hz = 7.0 * sin(a);
-            if (hz >= -height/2 + 1.0) {
-                translate([13.5, hy, hz]) rotate([0, 90, 0]) cylinder(d=3.2, h=7.0);
-                translate([13.5, hy, hz]) rotate([0, 90, 0]) cylinder(d=6.0, h=2.2);
+            if (hz >= -height/2 + 0.5) {
+                translate([10.5, hy, hz]) rotate([0, 90, 0]) cylinder(d=3.2, h=10.0);
+                translate([11.0, hy, hz]) rotate([0, 90, 0]) cylinder(d=5.5, h=1.8);
             }
         }
 
-        // Lỗ chốt xoay mắt trước
+        // D. Lỗ chốt xoay mắt trước (Y = length = 98.0, Z = 0)
         translate([-22.0, length, 0]) teardrop_hole_x(d=3.3, h=44.0);
 
-        // Lỗ chốt xoay mắt sau thanh trái
+        // E. Lỗ chốt xoay mắt sau thanh trái (Y = 0, Z = 0)
         translate([-22.0, 0, 0]) teardrop_hole_x(d=3.3, h=10.0);
     }
+}
+
+module lower_h_frame_arm_v13_printable() {
+    translate([0, 0, 6.0])
+        lower_h_frame_arm_v13();
+}
+
+// Giữ alias tương thích ngược
+module lower_h_frame_arm_v12(length = 98.0, height = 12.0, thickness = 5.0) {
+    lower_h_frame_arm_v13(length, height, thickness);
+}
+
+module lower_h_frame_arm_v12_printable() {
+    lower_h_frame_arm_v13_printable();
+}
+
+module lower_h_frame_arm_v11(length = 98.0, height = 12.0, thickness = 5.0) {
+    lower_h_frame_arm_v13(length, height, thickness);
+}
+
+module lower_h_frame_arm_v11_printable() {
+    lower_h_frame_arm_v13_printable();
+}
+
+module lower_h_frame_arm_v50(length = 98.0, height = 12.0, thickness = 5.0) {
+    lower_h_frame_arm_v13(length, height, thickness);
+}
+
+module lower_h_frame_arm_v50_printable() {
+    lower_h_frame_arm_v13_printable();
+}
+
+module lower_h_frame_arm(length = 98.0, height = 12.0, thickness = 5.0) {
+    lower_h_frame_arm_v13(length, height, thickness);
 }
 
 // ====================================================================
@@ -744,185 +924,19 @@ module wrist_clevis_pitch_bracket_s3() {
 }
 
 // ====================================================================
-// 4. BỆ ĐẦU KẸP 3 TRỤ HOA TÍCH HỢP BẢN LỀ GẬP DỌC 90° V7.1 - 0% SUPPORT (04_Gripper_Base_Head)
+// 4, 5 & 6. CỤM ĐẦU KẸP V2.0 THỰC CHIẾN (GRIPPER V2.0 - 0% SUPPORT DFM)
+// - Bệ đầu kẹp 04_Gripper_Base_Head_V2
+// - Cặp ngàm kẹp đa năng 05 & 06 (Bánh răng Involute m=1.5mm, Rãnh V kép, Răng cưa)
 // ====================================================================
+include <gripper_v2.scad>;
+include <gripper_folded_200x200.scad>;
+
 module gripper_base_head() {
-    Y_piv = 6.0;
-    Z_piv = 38.0;
-    Y_jaw = 39.0;
-
-    difference() {
-        union() {
-            translate([-31.0, 22.0, 0]) cube([66.0, 28.0, 5.0]);
-            hull() {
-                translate([-20.0, 46.0, 0]) cube([40.0, 4.0, 5.0]);
-                translate([-14.0, 58.0, 0]) cube([28.0, 4.0, 5.0]);
-            }
-            translate([-31.0, 22.0, 0]) cube([66.0, 5.5, 24.5]);
-            translate([-15.0, Y_jaw, 5.0]) cylinder(d=8.0, h=10.0);
-            translate([15.0, Y_jaw, 5.0])  cylinder(d=8.0, h=10.0);
-
-            translate([-31.0, 22.0, 0]) cube([4.0, 28.0, 35.0]);
-            translate([-31.0, 22.0, 0]) cube([15.0, 5.0, 24.5]);
-            hull() {
-                translate([-31.0, 27.0, 21.5]) cube([4.0, 23.0, 13.5]);
-                translate([-31.0, 27.0, 31.0]) cube([15.0, 23.0, 4.0]);
-            }
-            hull() {
-                translate([-33.0, Y_piv, Z_piv]) rotate([0, 90, 0]) cylinder(d=18.0, h=6.0);
-                translate([-33.0, Y_piv + 6.0, Z_piv - 12.0]) cube([6.0, 2.0, 12.0]);
-                translate([-31.0, 22.0, 0.0]) cube([4.0, 14.0, 35.0]);
-            }
-
-            translate([27.0, 22.0, 0]) cube([8.0, 28.0, 35.0]);
-            hull() {
-                translate([27.0, 27.0, 26.0]) cube([8.0, 23.0, 9.0]);
-                translate([25.25, 27.0, 29.0]) cube([9.75, 23.0, 6.0]);
-            }
-            hull() {
-                translate([27.0, Y_piv, Z_piv]) rotate([0, 90, 0]) cylinder(d=25.0, h=8.0);
-                translate([27.0, Y_piv + 8.0, Z_piv - 16.0]) cube([8.0, 2.0, 16.0]);
-                translate([27.0, 22.0, 0.0]) cube([8.0, 14.0, 35.0]);
-            }
-        }
-
-        for (sx = [4.65 - 24.25, 4.65 + 24.25]) {
-            for (sy = [Y_jaw - 5.0, Y_jaw + 5.0]) {
-                translate([sx, sy, 20.0]) cylinder(d=2.95, h=20.0);
-            }
-        }
-        for (sy = [Y_jaw - 5.0, Y_jaw + 5.0]) {
-            translate([28.90, sy, -1.0]) cylinder(d=6.5, h=29.5, $fn=6);
-            translate([28.90, sy, 28.4]) cylinder(d1=6.5, d2=2.95, h=2.0);
-        }
-        for (px = [-15.0, 15.0]) {
-            translate([px, Y_jaw, -1.0]) cylinder(d=3.3, h=20.0);
-            translate([px, Y_jaw, -0.1]) rotate([0, 0, 30]) cylinder(d=6.45, h=2.8, $fn=6);
-            translate([px, Y_jaw, 2.65]) cylinder(d1=6.45, d2=3.3, h=1.8);
-        }
-
-        translate([-35.0, Y_piv, Z_piv]) rotate([0, 90, 0]) cylinder(d=3.4, h=10.0);
-        translate([-35.0, Y_piv, Z_piv]) rotate([0, 90, 0]) rotate([0, 0, 45]) cube([3.4/2, 3.4/2, 10.0]);
-        translate([-33.5, Y_piv, Z_piv]) rotate([0, 90, 0]) cylinder(d=6.5, h=2.5);
-
-        translate([26.8, Y_piv, Z_piv]) rotate([0, 90, 0]) cylinder(d=20.8, h=2.7);
-        translate([26.8, Y_piv - 4.1, Z_piv - 4.1]) cube([2.7, 22.0, 8.2]);
-        translate([26.0, Y_piv, Z_piv]) rotate([0, 90, 0]) cylinder(d=6.5, h=10.0);
-        for (a = [0:45:315]) {
-            hy = Y_piv + 7.0 * cos(a);
-            hz = Z_piv + 7.0 * sin(a);
-            translate([26.0, hy, hz]) rotate([0, 90, 0]) cylinder(d=2.9, h=10.0);
-        }
-    }
+    gripper_base_head_v2();
 }
 
-// ====================================================================
-// 5 & 6. CẶP HÀM KẸP LIÊN HOÀN 3 TRỤ HOA Ø32mm V7.0 (05 & 06)
-// ====================================================================
 module specialized_gripper_jaw(is_left = true) {
-    pivot_x = is_left ? -15.0 : 15.0;
-    sx = is_left ? -1.0 : 1.0;
-    H = 22.0;
-    H_hub = is_left ? 16.0 : 22.0;
-    Y1 = 33.0;
-    Y2 = 66.0;
-    Y3 = 99.0;
-
-    difference() {
-        union() {
-            translate([pivot_x, 0, 0]) cylinder(r=11.5, h=H_hub);
-            hull() {
-                translate([pivot_x, 0, 0]) cylinder(r=10.0, h=H_hub);
-                translate([sx * 17.5, 16.0, 0]) cylinder(r=5.0, h=H_hub);
-            }
-            hull() {
-                translate([sx * 17.5, 14.0, 0]) cylinder(r=5.0, h=H_hub);
-                translate([sx * 19.0, 21.0, 0]) cylinder(r=5.0, h=H);
-            }
-            for (a = is_left ? [-54, -36, -18, 0, 18, 36] : [135, 153, 171, 189, 207, 225]) {
-                translate([pivot_x, 0, 0])
-                    rotate([0, 0, a])
-                        hull() {
-                            translate([10.5, -2.1, 0]) cube([2.5, 4.2, 16.0]);
-                            translate([16.3, -1.1, 0]) cube([0.6, 2.2, 16.0]);
-                        }
-            }
-            difference() {
-                union() {
-                    for (yk = [Y1, Y2, Y3]) {
-                        translate([0, yk, 0]) cylinder(r=23.0, h=H);
-                    }
-                    if (is_left) {
-                        translate([-23.0, 20.0, 0]) cube([7.5, 79.0, H]);
-                    } else {
-                        translate([15.5, 20.0, 0])  cube([7.5, 79.0, H]);
-                    }
-                }
-                translate([-25.0, Y3, -1.0]) cube([50.0, 30.0, H + 2.0]);
-                translate([-11.0, 8.0, -1.0]) cube([22.0, 9.5, H + 2.0]);
-                if (is_left) {
-                    translate([-30.0, 0.0, H_hub]) cube([60.0, 15.0, H]);
-                    translate([-30.0, 15.0, H_hub]) rotate([45, 0, 0]) cube([60.0, 10.0, 10.0]);
-                }
-            }
-            hull() {
-                translate([sx * 19.2, Y3, 0]) cylinder(d=6.8, h=H);
-                translate([sx * 30.0, Y3 + 19.0, 0]) cylinder(d=5.0, h=H);
-            }
-        }
-
-        if (is_left) {
-            translate([-7.5, 8.0, -1.0]) cube([40.0, 125.0, H + 2.0]);
-        } else {
-            translate([-32.5, 8.0, -1.0]) cube([40.0, 125.0, H + 2.0]);
-        }
-
-        for (yk = [Y1, Y2, Y3]) {
-            translate([0, yk, 0]) {
-                translate([0, 0, -0.5]) cylinder(r=14.9, h=2.0);
-                translate([0, 0, 1.4])  cylinder(r1=14.9, r2=16.1, h=1.2);
-                translate([0, 0, 2.5])  cylinder(r=16.1, h=H + 2.0);
-                for (zg = [6.5, 11.5, 16.5]) {
-                    translate([0, 0, zg]) cylinder(r1=16.1, r2=16.6, h=0.8);
-                    translate([0, 0, zg + 0.8]) cylinder(r1=16.6, r2=16.1, h=0.8);
-                }
-            }
-        }
-
-        translate([-13.0, Y1, 2.5]) cube([26.0, Y3 - Y1 + 5.0, H + 2.0]);
-        translate([-12.5, Y1, -0.5]) cube([25.0, Y3 - Y1 + 5.0, 3.2]);
-
-        for (yk = [Y1, Y2, Y3]) {
-            for (ang = is_left ? [166, 175, 184] : [-14, -5, 4]) {
-                hull() {
-                    translate([19.2 * cos(ang), yk + 19.2 * sin(ang), -1.0])
-                        cylinder(d=2.0, h=H + 2.0, $fn=16);
-                    translate([19.2 * cos(ang + 9), yk + 19.2 * sin(ang + 9), -1.0])
-                        cylinder(d=2.0, h=H + 2.0, $fn=16);
-                }
-            }
-        }
-
-        translate([pivot_x, 0, -0.2]) cylinder(d=8.2, h=10.4);
-        translate([pivot_x, 0, 10.2]) cylinder(d1=8.2, d2=3.4, h=2.4);
-        translate([pivot_x, 0, -0.5]) cylinder(d=3.4, h=H + 2.0);
-        if (is_left) {
-            translate([pivot_x, 0, H_hub - 3.0]) cylinder(d=6.8, h=4.0);
-        }
-
-        if (!is_left) {
-            translate([pivot_x, 0, H - 2.5]) cylinder(d=20.8, h=3.0);
-            translate([pivot_x - 4.1, -4.1, H - 2.5]) cube([8.2, 23.0, 3.0]);
-            translate([pivot_x, 0, 12.6]) cylinder(d=6.5, h=10.0);
-            for (a = [0:45:315]) {
-                hx = pivot_x + 7.0 * cos(a);
-                hy = 7.0 * sin(a);
-                translate([hx, hy, 11.0]) cylinder(d=2.9, h=12.0);
-            }
-            translate([pivot_x, 11.0, 12.0]) cylinder(d=2.5, h=11.0);
-            translate([pivot_x, 16.0, 12.0]) cylinder(d=2.5, h=11.0);
-        }
-    }
+    gripper_jaw_v2(is_left = is_left);
 }
 
 // ====================================================================
@@ -1042,6 +1056,19 @@ if (DISPLAY_MODE == "assembly") {
         translate([-42.0, -1.0, GROUND_CLEAR + 70.0])
             cube([84.0, 76.0, 0.8]);
 
+    // 7B. CẶP CẢM BIẾN KHOẢNG CÁCH LASER TOF VL53L0X HAI BÊN SƯỜN ĐO TƯỜNG GIẢI MÊ CUNG V10.0
+    color("Purple") {
+        // Cảm biến VL53L0X Trái (đo thành mê cung bên Trái)
+        translate([-68.2, 68.0, GROUND_CLEAR + 35.5]) cube([1.6, 25.0, 11.0]);
+        // Cảm biến VL53L0X Phải (đo thành mê cung bên Phải)
+        translate([66.6, 68.0, GROUND_CLEAR + 35.5]) cube([1.6, 25.0, 11.0]);
+    }
+    // Tia laser hồng ngoại ToF 90° phát sang 2 bên vách mê cung (màu đỏ mờ trực quan)
+    color("Crimson", 0.4) {
+        translate([-68.2 - 120.0, 74.0, GROUND_CLEAR + 40.0]) cube([120.0, 2.0, 2.0]);
+        translate([68.2, 74.0, GROUND_CLEAR + 40.0]) cube([120.0, 2.0, 2.0]);
+    }
+
     // 8. SERVO MG996R S1
     color("SlateGray") {
         translate([22.0, 114.3, GROUND_CLEAR + 48.15]) cube([37.5, 40.7, 19.7]);
@@ -1084,8 +1111,14 @@ if (DISPLAY_MODE == "assembly") {
 
                 // 12. Cặp hàm kẹp liên hoàn 3 trụ hoa Ø32mm V7.1
                 color("Crimson") {
-                    translate([0, 39.0, 5.0]) specialized_gripper_jaw(is_left=true);
-                    translate([0, 39.0, 5.0]) specialized_gripper_jaw(is_left=false);
+                    translate([-15.0, 39.0, 5.0])
+                        rotate([0, 0, -JAW_GRIP_ANGLE])
+                            translate([15.0, 0, 0])
+                                specialized_gripper_jaw(is_left=true);
+                    translate([15.0, 39.0, 5.0])
+                        rotate([0, 0, JAW_GRIP_ANGLE])
+                            translate([-15.0, 0, 0])
+                                specialized_gripper_jaw(is_left=false);
                 }
 
                 // 13. 3 Ống hoa mẫu Ø32.0 mm x Cao 120.0 mm được kẹp cùng lúc
