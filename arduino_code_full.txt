@@ -1,0 +1,261 @@
+<USER_REQUEST>
+giờ đổi lại cảm biến trước dùng hsr 05  còn 2 bên như cũ , ngoài ra đổi  thuật toán thành như thế này : 
+#define STUCK_TOLERANCE 2     // Ngưỡng khoảng cách không đổi (±2 cm)
+#define STUCK_TIME_LIMIT 3000 // NÂNG LÊN 3.0 GIÂY: Khoảng cách ±2cm không đổi trong 3s = KẸT
+#include <Arduino.h>
+
+const int pin1 = 8; // Right IN1
+const int pin2 = 9; // Right IN2
+const int enA = 10;
+
+const int pin3 = 6; // Left IN3
+const int pin4 = 7; // Left IN4
+const int enB = 5;
+
+// Cảm biến siêu âm
+const int trigF = 12;
+const int echoF = 13; // Phía trước (Front)
+const int trigL = 2;
+const int echoL = 4; // Bên trái (Left)
+const int trigR = 11;
+const int echoR = 3; // Bên phải (Right)
+
+int distanceF = 0, distanceL = 0, distanceR = 0;
+
+// ==================== THAM SỐ CẤU HÌNH & TỐC ĐỘ ====================
+// Khối lượng xe ~800g, nguồn pin ~8V (sử dụng mạch L298N)
+#define BASE_SPEED 125      // Tốc độ cơ bản PWM (0 - 255)
+#define TURN_RIGHT_SPEED 140 // Tốc độ rẽ phải
+#define TURN_RIGHT_DELAY 270 // Thời gian rẽ phải (ms)
+#define TURN_LEFT_SPEED 120  // Tốc độ rẽ trái nhỏ hơn (giảm từ 140)
+#define TURN_LEFT_DELAY 240  // Thời gian rẽ trái nhỏ hơn (giảm từ 270ms)
+#define TURN_BACK_SPEED 145  // Tốc độ khi xoay tại chỗ 180 độ (PWM)
+#define TURN_BACK_DELAY                                                        \
+  460                // Thời gian xoay tròn 180 độ (ms) - Chuẩn góc vuông 180 độ
+#define MIN_SPEED 60 // Tốc độ tối thiểu vượt qua ma sát
+#define MAX_SPEED 220 // Tốc độ tối đa an toàn
+
+#define FRONT_THRESHOLD 16   // Khoảng cách an toàn phía trước (cm)
+#define DESIRED_LEFT_WALL 12 // Khoảng cách bám tường trái lý tưởng (cm)
+#define MAX_WALL_DIST 30     // Khoảng cách tối đa coi là có tường (cm)
+#define LEFT_OPENING_THRESHOLD                                                 \
+  25                   // Khoảng cách nhận diện ngã rẽ mở bên trái (cm)
+#define RIGHT_CLEAR 15 // Khoảng cách trống tối thiểu bên phải để rẽ
+
+// Thời gian nhích tiến qua khỏi khúc cua góc tường (khoảng 6 - 7 cm)
+#define PRE_TURN_FORWARD_DELAY                                                 \
+  170 // Nhích tiến hẳn qua khỏi mép khúc cua trước khi rẽ trái (chống váp
+      // tường)
+#define POST_TURN_FORWARD_DELAY                                                \
+  150 // Nhích tiến sau khi rẽ để xe nằm thẳng giữa đường mới
+
+// Bù tốc độ động cơ (hiệu chỉnh lệch phần cứng)
+const int rightComp = 0;
+const int leftComp = -10;
+
+// ==================== THAM SỐ BỘ ĐIỀU KHIỂN PID ====================
+// Kp: Tăng lên 6.0 để phản hồi cực nhạy với khoảng cách tường trái
+// Ki: Tích phân loại bỏ sai số tĩnh
+// Kd: Tăng lên 3.5 dập tắt nhanh dốc lệch khoảng cách
+float Kp = 3.5;
+float Ki = 0.018;
+float Kd = 3.8;
+
+float error = 0, lastError = 0, integral = 0;
+unsigned long lastTime = 0;
+// ==================== THAM SỐ & BIẾN CHỐNG KẸT PHỐI HỢP ====================
+#define STUCK_999_LIMIT 600   // Cảm biến trả về 999 trong 0.6s = KẸT QUÁ SÁT / MẤT TÍN HIỆU
+#define BACKWARD_3CM_MS 160   // Thời gian lùi nhẹ khoảng 3cm (ms)
+#define BACKWARD_SPEED 125    // Tốc độ PWM lùi nhẹ
+
+int lastStuckF = -999, lastStuckL = -999, lastStuckR = -999;
+unsigned long lastStuckTime = 0;
+
+// ==================== THUẬT TOÁN CHỐNG KẸT LOOPS (5-6 VÒNG LẶP) ====================
+#define MAX_REPEAT_ACTIONS 5 // 5 vòng lặp liên tiếp làm cùng 1 hành động rẽ mà không đổi vị trí = KẸT
+int lastActionID = -1;
+int repeatActionCount = 0;
+
+// ==================== KHAI BÁO NGUYÊN MẪU HÀM ====================
+long getDistance(int trigPin, int echoPin);
+void readSensors();
+float computePID(float currentError);
+void movePID(float pidOutput);
+void stop();
+void turnRight();
+void turnLeft();
+void turnBack();
+void moveBackward(int speed, int durationMs);
+bool checkStuck();
+void resetStuckTracker();
+bool checkLoopStuck(int actionID);
+void resetLoopStuck();
+
+void setup() {
+  pinMode(pin1, OUTPUT);
+  pinMode(pin2, OUTPUT);
+  pinMode(enA, OUTPUT);
+  pinMode(pin3, OUTPUT);
+  pinMode(pin4, OUTPUT);
+  pinMode(enB, OUTPUT);
+
+  pinMode(trigF, OUTPUT);
+  pinMode(echoF, INPUT);
+  pinMode(trigL, OUTPUT);
+  pinMode(echoL, INPUT);
+  pinMode(trigR, OUTPUT);
+  pinMode(echoR, INPUT);
+
+  Serial.begin(9600);
+  Serial.println("=== Robot Me Cung - Thuat toan PID Bam Tuong Trai ===");
+  Serial.println(
+      "Khoi luong: ~800g | Nguon: ~8V | Strategie: Left Wall Follower");
+
+  lastTime = millis();
+  delay(500);
+}
+
+void loop() {
+  readSensors();
+
+  // ============ THUẬT TOÁN CHỐNG KẸT PHỐI HỢP ============
+  // 1. Nếu cảm biến trả về 999 (kẹt quá sát tường) -> Kẹt
+  // 2. Nếu khoảng cách 3 cảm biến giữ nguyên (±1cm) trong 3.0 giây -> Kẹt
+  if (checkStuck()) {
+    Serial.println(" -> PHÁT HIỆN KẸT (999 HOẶC ĐỨNG YÊN 3S)! Lùi nhẹ 3cm");
+    stop();
+    delay(30);
+    moveBackward(BACKWARD_SPEED, BACKWARD_3CM_MS);
+    resetStuckTracker();
+    return;
+  }
+
+  // In dữ liệu sensor & PID để debug qua Serial Monitor
+  Serial.print("F:");
+  Serial.print(distanceF);
+  Serial.print(" | L:");
+  Serial.print(distanceL);
+  Serial.print(" | R:");
+  Serial.print(distanceR);
+
+  // 1. Quy tắc bàn tay trái ưu tiên số 1: Nếu phát hiện bên trái có đường rẽ
+  // lớn -> RẼ TRÁI
+  if (distanceL > LEFT_OPENING_THRESHOLD) {
+    // Nếu phía trước quá sát (< 10cm) -> Lùi nhẹ trước để mũi xe không váp tường trước khi rẽ
+    if (distanceF < 10) {
+      Serial.println(" -> Quá sát tường trước (<10cm)! Lùi nhẹ trước khi rẽ trái");
+      stop();
+      delay(30);
+      moveBackward(100, 150);
+      readSensors();
+    }
+
+    // Kiểm tra kẹt lặp 5 vòng lặp liên tiếp
+    if (checkLoopStuck(1)) { // 1 = Re Trai
+Serial.println(" -> CHỐNG KẸT LOOPS: Rẽ trái 5 lần liên tiếp không đổi vị trí! Lùi 5cm");
+      stop();
+delay(50);
+      moveBackward(125, 230);
+      resetLoopStuck();
+      return;
+    }
+
+    // Bước 1: Nhích tiến 4cm (220ms) để tâm xoay bánh xe vượt hẳn qua cột tường ngã rẽ
+    movePID(0);
+    delay(PRE_TURN_FORWARD_DELAY);
+    stop();
+    delay(50);
+
+    Serial.println(" -> Phat hien nga re trai! Re Trai (Turn Left)");
+    turnLeft();
+
+    // Bước 2: Nhích tiến thêm 3.5cm (200ms) để thoát hẳn mép cột tường ngã rẽ trước khi bám PID
+    movePID(0);
+    delay(POST_TURN_FORWARD_DELAY);
+
+    // Reset PID bám đoạn tường trái mới
+    integral = 0;
+    lastError = 0;
+  }
+  // 2. Kiểm tra vật cản phía trước (khi bên trái không có lối mở)
+  else if (distanceF < FRONT_THRESHOLD) {
+    stop();
+    delay(50);
+
+    integral = 0;
+    lastError = 0;
+
+    // Do bên trái kín tường, vướng trước mặt sẽ Rẽ Phải hoặc Quay Đầu
+    if (distanceR > RIGHT_CLEAR) {
+      if (checkLoopStuck(2)) { // 2 = Re Phai
+        Serial.println(" -> CHỐNG KẸT LOOPS: Rẽ phải 5 lần liên tiếp không đổi vị trí! Lùi 5cm");
+        moveBackward(125, 230);
+        resetLoopStuck();
+        return;
+      }
+      Serial.println(" -> Re Phai (Turn Right)");
+      turnRight();
+      movePID(0);
+      delay(POST_TURN_FORWARD_DELAY);
+    } else {
+      if (checkLoopStuck(3)) { // 3 = Quay Dau
+        Serial.println(" -> CHỐNG KẸT LOOPS: Quay đầu 5 lần liên tiếp không đổi vị trí! Lùi 5cm");
+        moveBackward(125, 230);
+        resetLoopStuck();
+        return;
+      }
+      Serial.println(" -> Quay Dau (Turn Back)");
+      turnBack();
+      movePID(0);
+      delay(10);
+    }
+  }
+  // 3. Khi đi trong hành lang: Bám tường trái bằng bộ điều khiển PID nhạy
+  else {
+    resetLoopStuck(); // Reset đếm kẹt lặp khi di chuyển thẳng bình thường
+    error = (float)distanceL - DESIRED_LEFT_WALL;
+    float pidOutput = computePID(error);
+
+    Serial.print(" | Err:");
+    Serial.print(error);
+    Serial.print(" | PID:");
+    Serial.println(pidOutput);
+
+    movePID(pidOutput);
+  }
+
+  delay(30);
+}
+
+// ====================== ĐỌC CẢM BIẾN SIÊU ÂM ======================
+long getDistance(int trigPin, int echoPin) {
+  digitalWrite(trigPin, LOW);
+  delayMicroseconds(2);
+  digitalWrite(trigPin, HIGH);
+  delayMicroseconds(10);
+  digitalWrite(trigPin, LOW);
+  long duration = pulseIn(echoPin, HIGH, 25000); // Timeout 25ms (~4m max)
+  return (duration == 0) ? 999 : (duration * 0.034 / 2);
+}
+
+void readSensors() {
+  distanceF = getDistance(trigF, echoF);
+  distanceL = getDistance(trigL, echoL);
+  distanceR = getDistance(trigR, echoR);
+}
+
+// ====================== THUẬT TOÁN PID ======================
+float computePID(float currentError) {
+  unsigned long now = millis();
+float dt = (now - lastTime) / 1000.0;
+  if (dt <= 0.0 || dt > 0.5)
+    dt = 0.03; // Phòng trường hợp dt bất thường
+  lastTime = now;
+// Thành phần Tỷ lệ (Proportional)
+</USER_REQUEST>
+<ADDITIONAL_METADATA>
+The current local time is: 2026-11-16T20:33:32+07:00.
+</ADDITIONAL_METADATA>
+<USER_SETTINGS_CHANGE>
+The user changed setting `Model Selection` from Gemini 4 Hydrogen (Medium) to Gemini 4 Hydrogen (High). No need to comment on this change if the user doesn't ask about it. If reporting what model you are, please use a human readable name instead of the exact string.
+</USER_SETTINGS_CHANGE>

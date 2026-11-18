@@ -107,7 +107,11 @@ class PS4GamepadReceiver:
             return raw
 
     def _write(self, address, value):
-        self._i2c.writeto_mem(_GAMEPAD_RECEIVER_ADDR, address, value)
+        try:
+            self._i2c.writeto_mem(_GAMEPAD_RECEIVER_ADDR, address, value)
+            return True
+        except Exception:
+            return False
 
     def update(self):
         try:

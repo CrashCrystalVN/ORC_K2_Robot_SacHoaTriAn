@@ -15,6 +15,11 @@ Hệ thống điều khiển chuẩn hóa:
 """
 
 import asyncio
+try:
+    from time import ticks_ms
+except ImportError:
+    import time
+    def ticks_ms(): return int(time.time() * 1000)
 from motor import *
 from mdv2 import *
 from drivebase import *
@@ -131,6 +136,42 @@ async def on_cmd_BTN_CROSS():
     else:
         neopix.show(0, hex_to_rgb('#00ff00'))
 
+_last_options_toggle_ms = 0
+
+async def on_cmd_BTN_OPTIONS():
+    """Chuyển đổi chế độ AUTO <-> MANUAL bằng nút OPTIONS kèm phản hồi rung Haptic Rumble & debounce 400ms"""
+    global is_autonomous_running, _last_options_toggle_ms
+    now = ticks_ms()
+    if now - _last_options_toggle_ms < 400:
+        return
+    _last_options_toggle_ms = now
+
+    if not is_autonomous_running:
+        is_autonomous_running = True
+        robot.mode_auto = True
+        neopix.show(0, hex_to_rgb('#0000ff'))
+        gamepad.set_led_color(0, 0, 255)
+        print("\n>>> [MODE] CHUYỂN SANG AUTO (TỰ HÀNH) - Rung 2 cái dài <<<")
+        create_task(gamepad.rumble_feedback("AUTO"))
+        try:
+            await run_maze_left(robot, servo_lift, servo_grip)
+        except Exception as e:
+            print("[AUTO ERROR]", e)
+        robot.mode_auto = False
+        is_autonomous_running = False
+        neopix.show(0, hex_to_rgb('#00ff00'))
+        gamepad.set_led_color(0, 255, 0)
+        print("\n>>> [MODE] TỰ HÀNH HOÀN THÀNH -> TRẢ VỀ MANUAL - Rung 1 cái ngắn <<<")
+        create_task(gamepad.rumble_feedback("MANUAL"))
+    else:
+        is_autonomous_running = False
+        robot.mode_auto = False
+        robot.stop()
+        neopix.show(0, hex_to_rgb('#00ff00'))
+        gamepad.set_led_color(0, 255, 0)
+        print("\n>>> [MODE] NGẮT TỰ HÀNH KHẨN CẤP -> TRẢ VỀ MANUAL - Rung 1 cái ngắn <<<")
+        create_task(gamepad.rumble_feedback("MANUAL"))
+
 async def on_cmd_BTN_TRIANGLE():
     """Nút TAM GIÁC (TRIANGLE) - Gập dựng cụm kẹp (nếu có servo cổ tay) hoặc Turbo Mode"""
     try:
@@ -217,6 +258,8 @@ async def setup():
     teleop.on_button(BTN_CIRCLE, on_cmd_BTN_CIRCLE)
     teleop.on_button(BTN_CROSS, on_cmd_BTN_CROSS)
     teleop.on_button(BTN_TRIANGLE, on_cmd_BTN_TRIANGLE)
+    # Nút OPTIONS được quản lý độc quyền qua teleop.on_button (có debounce 400ms)
+    teleop.on_button(BTN_OPTIONS, on_cmd_BTN_OPTIONS)
     
     create_task(ble.wait_for_msg())
     create_task(gamepad.run())

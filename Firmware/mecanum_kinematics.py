@@ -182,12 +182,7 @@ class MecanumTeleopController:
         """
         print("[MECANUM TELEOP] He thong dieu khien 2 Joystick (FPS/Arcade) DA KICH HOAT!")
         while True:
-            # 1. Bỏ qua nếu đang chạy chiến thuật tự động giải mê cung
-            if getattr(self.robot, 'mode_auto', False):
-                await asyncio.sleep_ms(100)
-                continue
-
-            # 2. Xử lý sự kiện nhấn các nút tác vụ (Buttons)
+            # 1. Xử lý sự kiện nhấn các nút tác vụ (Buttons - luôn xử lý kể cả khi đang AUTO để nhận phím OPTIONS)
             d = self.gamepad.data
             for btn, handler in self._button_handlers.items():
                 state = d.get(btn, 0)
@@ -198,6 +193,11 @@ class MecanumTeleopController:
                         except Exception as e:
                             print(f"[BUTTON ERROR] {btn}: {e}")
                 self._button_last_state[btn] = state
+
+            # 2. Bỏ qua điều khiển Joystick nếu đang chạy chiến thuật tự động
+            if getattr(self.robot, 'mode_auto', False):
+                await asyncio.sleep_ms(50)
+                continue
 
             # 3. Hỗ trợ phím D-Pad để di chuyển nhích từng milimet (Micro-Stepping)
             dpad_vy = 0.0

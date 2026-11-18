@@ -225,108 +225,99 @@ module gripper_base_head_v3() {
     Y_piv = BASE_Y_PIV;
     Z_piv = BASE_Z_PIV;
 
+    SERVO_BODY_L        = 42.5;
+    SERVO_BODY_W        = 20.8;
+    SERVO_SPLINE_OFFSET = 10.35;
+    SERVO_CENTER_X      = PIVOT_X_RIGHT - SERVO_SPLINE_OFFSET; // 4.65mm
+    SERVO_MOUNT_PITCH_X = 48.5;
+    SERVO_MOUNT_PITCH_Y = 10.0;
+
     difference() {
         union() {
             // 1. SAN DAY CHINH (Z = 0 .. 5.0mm) & BAN TRUOT DO NGAM
-            // San phan hau (Y in [16.0, 35.0])
             translate([-31.0, 16.0, 0]) cube([64.0, 19.0, 5.0]);
-            // San truot vuon truoc do 2 ngon (Y in [35.0, 52.0])
             hull() {
                 translate([-25.0, 34.0, 0]) cube([50.0, 2.0, 5.0]);
                 translate([-18.0, 50.0, 0]) cube([36.0, 2.0, 5.0]);
             }
 
             // 2. HAI COC TRU XOAY NGAM PHI 8.0MM (Z = 5.0 .. 14.5mm)
-            translate([-15.0, Y_jaw, 5.0]) cylinder(d = 8.0, h = 9.5);
-            translate([15.0, Y_jaw, 5.0])  cylinder(d = 8.0, h = 9.5);
-            // Gan cone 45 do tang cung chan coc xoay
-            translate([-15.0, Y_jaw, 5.0]) cylinder(d1 = 11.5, d2 = 8.0, h = 1.75);
-            translate([15.0, Y_jaw, 5.0])  cylinder(d1 = 11.5, d2 = 8.0, h = 1.75);
+            for (px = [PIVOT_X_LEFT, PIVOT_X_RIGHT]) {
+                translate([px, Y_jaw, 5.0]) cylinder(d = 8.0, h = 9.5);
+                translate([px, Y_jaw, 5.0]) cylinder(d1 = 11.5, d2 = 8.0, h = 1.75);
+            }
 
-            // 3. VACH HAU LIEN KET CUNG VA NGAN CLEVIS SAU (Y in [16.0, 22.0], Z in [0, 44.0])
-            translate([-31.0, 16.0, 0]) cube([64.0, 6.0, 22.0]);
-            // Vach dung cao do tam clevis
-            translate([-31.0, 16.0, 22.0]) cube([64.0, 5.0, 18.0]);
+            // 3. VACH HAU LIEN KET CUNG VA NGAN CLEVIS SAU (Y in [16.0, 20.5], Z in [0, 44.0])
+            translate([-31.0, 16.0, 0]) cube([64.0, 4.5, 22.0]);
+            translate([-31.0, 16.0, 22.0]) cube([64.0, 4.5, 22.0]);
 
             // 4. MA CLEVIS BEN TRAI (X in [-33.0, -27.0]) - LO PIVOT M3 TAI (Y_piv=6, Z_piv=38)
             hull() {
                 translate([-33.0, Y_piv, Z_piv]) rotate([0, 90, 0]) cylinder(d = 18.0, h = 6.0);
-                translate([-33.0, 16.0, 20.0]) cube([6.0, 6.0, 20.0]);
-                translate([-31.0, 16.0, 0.0]) cube([4.0, 6.0, 20.0]);
+                translate([-33.0, 16.0, 20.0]) cube([6.0, 4.5, 20.0]);
+                translate([-31.0, 16.0, 0.0]) cube([4.0, 4.5, 20.0]);
             }
 
             // 5. MA CLEVIS BEN PHAI (X in [+27.0, +35.0]) - HOC DIA TRON MG996R TAI (Y_piv=6, Z_piv=38)
             hull() {
                 translate([27.0, Y_piv, Z_piv]) rotate([0, 90, 0]) cylinder(d = 25.0, h = 8.0);
-                translate([27.0, 16.0, 20.0]) cube([8.0, 6.0, 20.0]);
-                translate([27.0, 16.0, 0.0]) cube([6.0, 6.0, 20.0]);
+                translate([27.0, 16.0, 20.0]) cube([8.0, 4.5, 20.0]);
+                translate([27.0, 16.0, 0.0]) cube([6.0, 4.5, 20.0]);
             }
 
             // 6. CAU TREO SERVO S2 CANTILEVER TREN CAO (Z = 19.5 .. 25.5mm)
-            // Khung cau vuon tu vach hau (Y=21.0) ra (Y=44.0) tren cao Z >= 19.5mm
-            // Gius 2 ben rong 100% o Z in [5.0, 18.0] cho 2 ngon quay tu do 0 - 90 do!
-            // Gia do tai trai (X in [-24.0, -14.0], Y in [21.0, 44.0], Z in [19.5, 25.5])
             hull() {
-                translate([-25.0, 16.0, 19.5]) cube([12.0, 6.0, 6.0]);
-                translate([-25.0, 31.0, 19.5]) cube([12.0, 13.0, 6.0]);
+                translate([-25.0, 16.0, 19.5]) cube([12.0, 4.5, 6.0]);
+                translate([-25.0, 31.0, 19.5]) cube([12.0, 14.0, 6.0]);
             }
-            // Gan do tam giac 45 do tu vach hau len gia tai trai
             hull() {
-                translate([-25.0, 16.0, 5.0]) cube([8.0, 5.0, 5.0]);
-                translate([-25.0, 28.0, 19.5]) cube([8.0, 4.0, 2.0]);
+                translate([-25.0, 16.0, 5.0]) cube([8.0, 4.5, 5.0]);
+                translate([-25.0, 28.0, 19.5]) cube([8.0, 3.5, 2.0]);
             }
-
-            // Gia do tai phai (X in [+24.0, +34.0], Y in [21.0, 44.0], Z in [19.5, 25.5])
             hull() {
-                translate([24.0, 16.0, 19.5]) cube([10.0, 6.0, 6.0]);
-                translate([24.0, 31.0, 19.5]) cube([10.0, 13.0, 6.0]);
+                translate([24.0, 16.0, 19.5]) cube([10.0, 4.5, 6.0]);
+                translate([24.0, 31.0, 19.5]) cube([10.0, 14.0, 6.0]);
             }
-            // Gan do tam giac 45 do tu vach hau len gia tai phai
             hull() {
-                translate([24.0, 16.0, 5.0]) cube([8.0, 5.0, 5.0]);
-                translate([24.0, 28.0, 19.5]) cube([8.0, 4.0, 2.0]);
+                translate([24.0, 16.0, 5.0]) cube([8.0, 4.5, 5.0]);
+                translate([24.0, 28.0, 19.5]) cube([8.0, 3.5, 2.0]);
             }
-
-            // Cầu ngang noi 2 gia tai qua vach sau
-            translate([-25.0, 21.0, 19.5]) cube([59.0, 6.0, 6.0]);
+            translate([-25.0, 16.0, 19.5]) cube([59.0, 6.0, 6.0]);
         }
 
-        // =================================================================
-        // CAC PHEP CAT KHUYET BE DAU KEP (DIFFERENCE CUTS)
-        // =================================================================
+        // A. KHOANG LOT THAN SERVO MG996R (42.5mm x 20.8mm)
+        translate([SERVO_CENTER_X - SERVO_BODY_L / 2.0, Y_jaw - SERVO_BODY_W / 2.0, 16.0])
+            cube([SERVO_BODY_L, SERVO_BODY_W, 32.0]);
 
-        // A. KHOANG LOT THAN SERVO MG996R (42.5mm x 20.5mm)
-        // Tam truc MG996R dat tai X = +15.0, Y = Y_jaw = 38.0
-        // Tam than servo tai X = 4.65, Y = 38.0
-        translate([-16.6, Y_jaw - 10.25, 17.0])
-            cube([42.5, 20.5, 30.0]);
-
-        // B. 4 LO BAT TAI SERVO MG996R S2 (Khoang cach 48.5 x 10.0 mm)
-        for (sx = [4.65 - 24.25, 4.65 + 24.25]) {
-            for (sy = [Y_jaw - 5.0, Y_jaw + 5.0]) {
-                translate([sx, sy, 15.0]) cylinder(d = 2.95, h = 15.0);
+        // B. 4 LO BAT TAI SERVO MG996R (Pitch 48.5 x 10.0mm) + DUAL INSERTS
+        for (sx = [SERVO_CENTER_X - SERVO_MOUNT_PITCH_X / 2.0, SERVO_CENTER_X + SERVO_MOUNT_PITCH_X / 2.0]) {
+            for (sy = [Y_jaw - SERVO_MOUNT_PITCH_Y / 2.0, Y_jaw + SERVO_MOUNT_PITCH_Y / 2.0]) {
+                translate([sx, sy, 18.5]) cylinder(d = 3.4, h = 8.0);
+                translate([sx, sy, 25.5 - 3.8]) cylinder(d = 4.2, h = 4.0);
+                translate([sx, sy, 19.4]) cylinder(d = 6.4, h = 2.5,  = 6);
+                translate([sx, sy, -1.0]) cylinder(d = 6.5, h = 7.0);
             }
         }
 
-        // C. 2 LO TAM TRUC BU-LONG M3 XUYEN COC + HOC TAN LUC GIAC M3 CHIM O DAY
-        for (px = [-15.0, 15.0]) {
-            // Lo xuyen M3
+        // C. RANH THOAT RANG HOP SO (GEAR RELIEF CUTS)
+        for (px = [PIVOT_X_LEFT, PIVOT_X_RIGHT]) {
+            translate([px, Y_jaw, 4.8]) cylinder(r = 18.0, h = 14.5);
+        }
+
+        // D. 2 LO TAM TRUC BU-LONG M3 XUYEN COC + HOC TAN VA REN DONG CHIM DUOI DAY
+        for (px = [PIVOT_X_LEFT, PIVOT_X_RIGHT]) {
             translate([px, Y_jaw, -1.0]) cylinder(d = 3.4, h = 20.0);
-            // Hoc tan luc giac M3 (phi 6.45mm sau 2.8mm)
-            translate([px, Y_jaw, -0.1]) rotate([0, 0, 30]) cylinder(d = 6.45, h = 2.8, $fn = 6);
-            // Non tu do 45 do len lo M3 (0% support)
-            translate([px, Y_jaw, 2.65]) cylinder(d1 = 6.45, d2 = 3.4, h = 1.8);
+            translate([px, Y_jaw, -0.1]) rotate([0, 0, 30]) cylinder(d = 6.45, h = 3.0,  = 6);
+            translate([px, Y_jaw, 2.85]) cylinder(d1 = 6.45, d2 = 3.4, h = 1.6);
         }
 
-        // D. LO TRUC CLEVIS BEN TRAI (Y_piv = 6.0, Z_piv = 38.0)
+        // E. LO TRUC CLEVIS BEN TRAI (Y_piv = 6.0, Z_piv = 38.0)
         translate([-35.0, Y_piv, Z_piv]) rotate([0, 90, 0]) cylinder(d = 3.4, h = 10.0);
-        translate([-35.0, Y_piv, Z_piv]) rotate([0, 90, 0]) rotate([0, 0, 45]) cube([3.4/2, 3.4/2, 10.0]);
-        // Bac chim dau bu-long M3
-        translate([-33.5, Y_piv, Z_piv]) rotate([0, 90, 0]) cylinder(d = 6.5, h = 2.5);
+        translate([-33.5, Y_piv, Z_piv]) rotate([0, 90, 0]) cylinder(d = 6.5, h = 2.8);
 
-        // E. HOC DIA TRON SERVO S3 TREN MA CLEVIS PHAI
-        translate([26.8, Y_piv, Z_piv]) rotate([0, 90, 0]) cylinder(d = 20.8, h = 2.7);
-        translate([26.8, Y_piv - 4.1, Z_piv - 4.1]) cube([2.7, 22.0, 8.2]);
+        // F. HOC DIA TRON SERVO S3 TREN MA CLEVIS PHAI
+        translate([26.8, Y_piv, Z_piv]) rotate([0, 90, 0]) cylinder(d = 20.8, h = 2.8);
+        translate([26.8, Y_piv - 4.1, Z_piv - 11.0]) cube([2.8, 22.0, 8.2]);
         translate([26.0, Y_piv, Z_piv]) rotate([0, 90, 0]) cylinder(d = 6.5, h = 10.0);
         for (a = [0 : 45 : 315]) {
             hy = Y_piv + 7.0 * cos(a);
@@ -334,11 +325,11 @@ module gripper_base_head_v3() {
             translate([26.0, hy, hz]) rotate([0, 90, 0]) cylinder(d = 2.9, h = 10.0);
         }
 
-        // F. 4 LO BAT OC M3 MAT HAU CHO GA TRUC TIEP VAO BAN NANG / THAP NANG
+        // G. 4 LO BAT OC M3 MAT HAU CHO GA TRUC TIEP VAO BAN NANG / THAP NANG
         for (bx = [-12.0, 12.0]) {
             for (bz = [8.0, 28.0]) {
-                translate([bx, 24.0, bz]) rotate([90, 0, 0]) cylinder(d = 3.2, h = 12.0);
-                translate([bx, 24.0, bz]) rotate([90, 0, 0]) rotate([0, 0, 45]) cube([3.2/2, 3.2/2, 12.0]);
+                translate([bx, 22.0, bz]) rotate([90, 0, 0]) cylinder(d = 3.3, h = 10.0);
+                translate([bx, 22.0, bz]) rotate([90, 0, 0]) rotate([0, 0, 45]) cube([3.3/2, 3.3/2, 10.0]);
             }
         }
     }
@@ -347,12 +338,14 @@ module gripper_base_head_v3() {
 // ====================================================================
 // MODULE 5: CAC MODULE XUAT STL CHUAN DFM (FLAT BED Z = 0)
 // ====================================================================
+use <05_Gripper_Jaws_v3.scad>;
+
 module export_jaw_left_v3() {
-    gripper_jaw_v3(is_left = true);
+    gripper_jaw_left_v3();
 }
 
 module export_jaw_right_v3() {
-    gripper_jaw_v3(is_left = false);
+    gripper_jaw_right_v3();
 }
 
 module export_gripper_base_v3() {

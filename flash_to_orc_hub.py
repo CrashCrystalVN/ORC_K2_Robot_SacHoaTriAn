@@ -16,15 +16,20 @@ if sys.platform == 'win32':
     except Exception:
         pass
 
-def find_esp32_port():
-    ports = list(serial.tools.list_ports.comports())
-    for p in ports:
-        # VID 303A: Espressif USB Serial/JTAG or CP210x/CH340
-        if "303A" in p.hwid or "USB JTAG" in p.description or "Espressif" in p.description:
-            return p.device
-    for p in ports:
-        if "COM" in p.device and p.device != "COM1":
-            return p.device
+def find_esp32_port(wait_seconds=30):
+    start = time.time()
+    first = True
+    while time.time() - start < wait_seconds:
+        ports = list(serial.tools.list_ports.comports())
+        for p in ports:
+            if "BTHENUM" in p.hwid or "Bluetooth" in p.description:
+                continue
+            if "303A" in p.hwid or "USB JTAG" in p.description or "Espressif" in p.description or p.device == "COM19":
+                return p.device
+        if first:
+            print("[*] Dang cho ket noi cong USB COM19 tu mach OhStem K2 Hub (ESP32-S3)...")
+            first = False
+        time.sleep(1.0)
     return "COM19"
 
 def build_vfs_image(vfs_base_path, firmware_dir, output_vfs_path):
@@ -61,7 +66,7 @@ def flash_to_board(port, vfs_image_path):
     cmd = [
         sys.executable, "-m", "esptool",
         "--port", port,
-        "--no-stub",
+        "--baud", "921600",
         "write-flash", "0x200000", vfs_image_path
     ]
     res = subprocess.run(cmd, capture_output=True, text=True)
@@ -75,6 +80,15 @@ def flash_to_board(port, vfs_image_path):
 
 def reset_board(port):
     print("[-] Dang khoi dong lai mach...")
+    try:
+        import esptool
+        esp = esptool.cmds.detect_chip(port=port)
+        esp.watchdog_reset()
+        esp._port.close()
+        print("[OK] Mach da duoc Watchdog Reset va khoi chay MicroPython thanh cong!")
+        return
+    except Exception as e:
+        print("[*] Thu reset qua esptool run fallback:", e)
     cmd = [sys.executable, "-m", "esptool", "--port", port, "run"]
     subprocess.run(cmd, capture_output=True, text=True)
     print("[OK] Mach da duoc Reset va khoi chay code moi!")
@@ -93,8 +107,10 @@ if __name__ == "__main__":
         if arg.upper().startswith("COM"):
             port = arg.upper()
             break
-    if not port:
+    if not port and "--build-only" not in sys.argv:
         port = find_esp32_port()
+    elif not port:
+        port = "BUILD_ONLY"
     print(f"=== TIEN TRINH NAP CODE CHO ORC K2 (PORT: {port}) ===")
     
     build_vfs_image(vfs_base, firmware_dir, vfs_out)

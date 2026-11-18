@@ -1,6 +1,6 @@
 """
 MODULE ĐỌC TAY CẦM GAMEPAD (PS4 I2C RECEIVER & OHSTEM APP BLE)
-Đã chuẩn hóa đọc tín hiệu trục Joystick và các nút bấm.
+Đã chuẩn hóa đọc tín hiệu trục Joystick, các nút bấm, rung Haptic Rumble và đổi màu LED.
 """
 
 import math
@@ -42,6 +42,10 @@ class Gamepad:
             BTN_THUMBR: 0,
             BTN_M1: 0,
             BTN_M2: 0,
+            'OPTIONS': 0,
+            'START': 0,
+            'SHARE': 0,
+            'SELECT': 0,
             AL: 0,
             ALX: 0,
             ALY: 0,
@@ -58,6 +62,7 @@ class Gamepad:
         self._last_cmd = None
         self._run_speed = 0
         self._cmd_handlers = {}
+        self._last_btn_states = {}
 
         # Mạch nhận tín hiệu Gamepad PS4 qua SoftI2C
         try:
@@ -72,7 +77,75 @@ class Gamepad:
         except Exception:
             pass
 
+    @property
+    def is_connected(self):
+        """Kiểm tra tay cầm PS4 có đang kết nối không."""
+        if self._ps4_gamepad:
+            return getattr(self._ps4_gamepad, 'is_connected', False)
+        return False
+
+    def set_rumble(self, force=255, duration=255):
+        """
+        Gửi lệnh rung trực tiếp tới tay cầm PS4.
+        force: 0-255
+        duration: 0-255
+        """
+        if self._ps4_gamepad:
+            try:
+                self._ps4_gamepad.set_rumble(force, duration)
+            except Exception:
+                pass
+
+    async def rumble_pulse(self, duration_ms=200, force=220):
+        """
+        Rung tay cầm trong khoảng thời gian duration_ms (ms), sau đó tự động ngắt.
+        """
+        if self._ps4_gamepad:
+            try:
+                dur_param = min(255, max(1, duration_ms // 10))
+                self._ps4_gamepad.set_rumble(force, dur_param)
+            except Exception:
+                pass
+        await asyncio.sleep_ms(duration_ms)
+        if self._ps4_gamepad:
+            try:
+                self._ps4_gamepad.set_rumble(0, 0)
+            except Exception:
+                pass
+
+    async def rumble_feedback(self, mode):
+        """
+        Phản hồi rung haptic theo chế độ yêu cầu:
+        - "MANUAL": Tay cầm rung 1 cái ngắn (200ms)
+        - "AUTO": Tay cầm rung 2 cái dài (500ms -> ngắt 200ms -> 500ms)
+        """
+        if mode == "MANUAL":
+            await self.rumble_pulse(duration_ms=200, force=220)
+        elif mode == "AUTO":
+            await self.rumble_pulse(duration_ms=500, force=255)
+            await asyncio.sleep_ms(200)
+            await self.rumble_pulse(duration_ms=500, force=255)
+
+    def set_led_color(self, r, g, b):
+        """Đặt màu LED thanh sáng (Lightbar) trên tay cầm PS4."""
+        if self._ps4_gamepad:
+            try:
+                self._ps4_gamepad.set_led_color([int(r), int(g), int(b)])
+            except Exception:
+                pass
+
     async def on_ble_cmd(self, name, value):
+        if name in (BTN_M2, 'M2', 'OPTIONS', 'START'):
+            self.data[BTN_M2] = value
+            self.data['OPTIONS'] = value
+            self.data['START'] = value
+            return
+        if name in (BTN_M1, 'M1', 'SHARE', 'SELECT'):
+            self.data[BTN_M1] = value
+            self.data['SHARE'] = value
+            self.data['SELECT'] = value
+            return
+
         if name not in self.data:
             return
         self.data[name] = value
@@ -100,6 +173,7 @@ class Gamepad:
                 pass
 
     def on_button_pressed(self, button, callback):
+        """Đăng ký callback khi một nút được nhấn (sườn lên 0 -> 1)."""
         self._cmd_handlers[button] = callback
 
     async def run(self):
@@ -123,10 +197,14 @@ class Gamepad:
                         self.data[BTN_R2]       = p_data.get('r2', 0)
                         self.data[BTN_M1]       = p_data.get('m1', 0)
                         self.data[BTN_M2]       = p_data.get('m2', 0)
+                        self.data['OPTIONS']    = self.data[BTN_M2]
+                        self.data['START']      = self.data[BTN_M2]
+                        self.data['SHARE']      = self.data[BTN_M1]
+                        self.data['SELECT']     = self.data[BTN_M1]
                         self.data[BTN_THUMBL]   = p_data.get('thumbl', 0)
                         self.data[BTN_THUMBR]   = p_data.get('thumbr', 0)
 
-                        # Ánh xạ đúng chuẩn phần cứng tay cầm PS4 receiver I2C:
+                        # Ánh xạ chuẩn phần cứng tay cầm PS4 receiver I2C:
                         # - Cần Trái (J1 - AL):
                         #   + alx: Trục Ngang (-508 Trái .. +512 Phải) -> ALX (-100 .. +100)
                         #   + aly: Trục Dọc (-508 Tiến .. +512 Lùi) -> ALY (+100 .. -100)
@@ -154,6 +232,20 @@ class Gamepad:
                         self.data[AR_DISTANCE] = distance
                 except Exception:
                     pass
+
+            # Kiểm tra sườn lên (vừa nhấn 0 -> 1) cho các nút có callback đã đăng ký
+            for btn, callback in self._cmd_handlers.items():
+                curr = self.data.get(btn, 0)
+                last = self._last_btn_states.get(btn, 0)
+                if curr == 1 and last == 0:
+                    if callback:
+                        try:
+                            res = callback()
+                            if hasattr(res, '__await__') or hasattr(res, 'send'):
+                                asyncio.create_task(res)
+                        except Exception as e:
+                            print(f'[GAMEPAD] Loi callback nut {btn}:', e)
+                self._last_btn_states[btn] = curr
 
             if self._verbose:
                 if ticks_ms() - self._last_print > 200:
